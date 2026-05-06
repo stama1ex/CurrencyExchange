@@ -74,20 +74,22 @@ public class ReportController {
     private void loadReportInternal(String selected) {
         String sql;
         if (selected.contains("cash_desk_status")) {
-            sql = "SELECT cash_desk_name, address, total_balance_mdl, recommendation FROM cash_desk_status";
+            sql = "SELECT cash_desk_name, address, total_balance_mdl, recommendation FROM cash_desk_status ORDER BY cash_desk_name";
         } else if (selected.contains("exchange_operations_view")) {
             sql = "SELECT cd.cash_desk_name AS \"Касса\", eo.operation_date AS \"Дата\", cf.currency_name AS \"Из валюты\", " +
                     "ct.currency_name AS \"В валюту\", eo.amount_from AS \"Сумма из\", eo.rate AS \"Курс\", eo.amount_to AS \"Сумма в\" " +
                     "FROM exchange_operations eo " +
                     "JOIN cash_desks cd ON cd.cash_desk_id = eo.cash_desk_id " +
                     "JOIN currencies cf ON cf.currency_code = eo.currency_from " +
-                    "JOIN currencies ct ON ct.currency_code = eo.currency_to";
+                    "JOIN currencies ct ON ct.currency_code = eo.currency_to " +
+                    "ORDER BY eo.operation_date DESC, eo.operation_id DESC";
         } else {
             sql = "SELECT cd.cash_desk_name AS \"Касса\", i.incassation_date AS \"Дата\", c.currency_name AS \"Валюта\", " +
                     "i.operation_type AS \"Тип\", i.amount AS \"Сумма\", i.status AS \"Статус\", COALESCE(i.note, '') AS \"Примечание\" " +
                     "FROM incassations i " +
                     "JOIN cash_desks cd ON cd.cash_desk_id = i.cash_desk_id " +
-                    "JOIN currencies c ON c.currency_code = i.currency_code";
+                    "JOIN currencies c ON c.currency_code = i.currency_code " +
+                    "ORDER BY i.incassation_date DESC, i.incassation_id DESC";
         }
 
         data.clear();

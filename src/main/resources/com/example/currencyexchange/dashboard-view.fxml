@@ -29,7 +29,7 @@
                 <String fx:value="stat-card"/>
                 <String fx:value="gradient-blue"/>
             </styleClass>
-            <Label text="💱 Валюты" styleClass="stat-kicker"/>
+            <Label text="Валюты" styleClass="stat-kicker"/>
             <Label fx:id="currenciesCount" text="0" styleClass="stat-value"/>
             <Label text="активных валют в системе" styleClass="stat-title"/>
         </VBox>
@@ -38,7 +38,7 @@
                 <String fx:value="stat-card"/>
                 <String fx:value="gradient-green"/>
             </styleClass>
-            <Label text="🏦 Кассы" styleClass="stat-kicker"/>
+            <Label text="Кассы" styleClass="stat-kicker"/>
             <Label fx:id="cashDesksCount" text="0" styleClass="stat-value"/>
             <Label text="обменных точек подключено" styleClass="stat-title"/>
         </VBox>
@@ -47,7 +47,7 @@
                 <String fx:value="stat-card"/>
                 <String fx:value="gradient-orange"/>
             </styleClass>
-            <Label text="📈 Операции" styleClass="stat-kicker"/>
+            <Label text="Операции" styleClass="stat-kicker"/>
             <Label fx:id="operationsCount" text="0" styleClass="stat-value"/>
             <Label text="обменных операций проведено" styleClass="stat-title"/>
         </VBox>

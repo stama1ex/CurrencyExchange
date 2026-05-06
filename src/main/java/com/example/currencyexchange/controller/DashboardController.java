@@ -231,7 +231,7 @@ public class DashboardController {
         root.setPadding(new Insets(14, 16, 14, 16));
         root.getStyleClass().add("attention-card");
 
-        Label icon = new Label("🏦");
+        Label icon = new Label("К");
         icon.getStyleClass().add("attention-icon");
 
         VBox textBox = new VBox(4);
@@ -271,7 +271,7 @@ public class DashboardController {
             return "status-pill-danger";
         }
         if (value.contains("инкассац")) {
-            return "status-pill-warning";
+            return "status-pill-info";
         }
         return "status-pill-neutral";
     }

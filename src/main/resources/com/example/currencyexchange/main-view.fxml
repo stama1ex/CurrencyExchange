@@ -19,7 +19,7 @@
         <VBox fx:id="sidebar" prefWidth="248" styleClass="sidebar">
             <HBox styleClass="sidebar-brand" alignment="CENTER_LEFT" spacing="12">
                 <padding><Insets right="22" left="22"/></padding>
-                <Label text="💱" styleClass="brand-icon"/>
+                <Label text="FX" styleClass="brand-icon"/>
                 <VBox spacing="1" alignment="CENTER_LEFT" styleClass="brand-copy">
                     <Label text="FX Exchange" styleClass="brand"/>
                     <Label text="Сеть обменных касс" styleClass="brand-subtitle"/>

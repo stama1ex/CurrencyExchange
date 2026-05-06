@@ -33,7 +33,7 @@
             <Label text="Выберите валюту из списка и дату, чтобы мгновенно отфильтровать таблицу" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="📅 История изменений" styleClass="mini-stat-title"/>
+            <Label text="История изменений" styleClass="mini-stat-title"/>
             <Label text="Курсы выводятся в порядке последних дат" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
     </HBox>
@@ -42,7 +42,7 @@
         <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
             <Button text="＋ Добавить" onAction="#addRate" styleClass="primary-button"/>
             <Button text="✎ Изменить" onAction="#updateRate" styleClass="secondary-button"/>
-            <Button text="🗑 Удалить" onAction="#deleteRate" styleClass="danger-button"/>
+            <Button text="Удалить" onAction="#deleteRate" styleClass="danger-button"/>
             <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
             <Region HBox.hgrow="ALWAYS"/>
             <VBox spacing="4">

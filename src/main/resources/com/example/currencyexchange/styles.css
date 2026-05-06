@@ -496,6 +496,11 @@
   -fx-text-fill: #b91c1c;
 }
 
+.status-pill-info {
+  -fx-background-color: rgba(37, 99, 235, 0.14);
+  -fx-text-fill: #1d4ed8;
+}
+
 .status-pill-warning {
   -fx-background-color: rgba(245, 158, 11, 0.18);
   -fx-text-fill: #b45309;
@@ -590,7 +595,7 @@
 }
 
 .default-color0.chart-pie {
-  -fx-pie-color: #f59e0b;
+  -fx-pie-color: #2563eb;
 }
 .default-color1.chart-pie {
   -fx-pie-color: #ef4444;
@@ -599,7 +604,7 @@
   -fx-pie-color: #10b981;
 }
 .default-color3.chart-pie {
-  -fx-pie-color: #2563eb;
+  -fx-pie-color: #f59e0b;
 }
 .default-color4.chart-pie {
   -fx-pie-color: #8b5cf6;

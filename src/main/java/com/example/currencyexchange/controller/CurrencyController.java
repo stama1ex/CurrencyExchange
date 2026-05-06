@@ -63,8 +63,7 @@ public class CurrencyController {
         CurrencyForm form = formResult.get();
 
         try {
-            if (!ValidationService.isNotBlank(form.code()) || !ValidationService.isNotBlank(form.name())) {
-                AlertUtil.warning("Валидация", "Код и название валюты обязательны.");
+            if (!validateCurrencyForm(form)) {
                 return;
             }
 
@@ -96,6 +95,10 @@ public class CurrencyController {
         CurrencyForm form = formResult.get();
 
         try {
+            if (!validateCurrencyForm(form)) {
+                return;
+            }
+
             String sql = "UPDATE currencies SET currency_code=?, currency_name=? WHERE currency_code=?";
             try (Connection connection = DatabaseConnection.getConnection();
                  PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -186,7 +189,7 @@ public class CurrencyController {
             empty.setAlignment(Pos.CENTER);
             empty.setPadding(new Insets(28));
             empty.getStyleClass().add("empty-state-box");
-            Label icon = new Label("💱");
+            Label icon = new Label("FX");
             icon.getStyleClass().add("empty-state-icon");
             Label text = new Label("По вашему запросу валюты не найдены.");
             text.getStyleClass().add("empty-state-label");
@@ -226,7 +229,7 @@ public class CurrencyController {
             updateCurrency();
             event.consume();
         });
-        Button deleteButton = new Button("🗑");
+        Button deleteButton = new Button("×");
         deleteButton.getStyleClass().addAll("icon-action-button", "danger-ghost-button");
         deleteButton.setOnAction(event -> {
             selectCurrency(currency);
@@ -271,6 +274,18 @@ public class CurrencyController {
     private void updateMeta(String text) {
         searchMetaLabel.setText(text);
         updateSummary();
+    }
+
+    private boolean validateCurrencyForm(CurrencyForm form) {
+        if (!ValidationService.isNotBlank(form.code()) || !ValidationService.isNotBlank(form.name())) {
+            AlertUtil.warning("Валидация", "Код и название валюты обязательны.");
+            return false;
+        }
+        if (form.code().length() != 3) {
+            AlertUtil.warning("Валидация", "Код валюты должен содержать 3 символа.");
+            return false;
+        }
+        return true;
     }
 
     private Optional<CurrencyForm> showCurrencyDialog(Currency currency) {

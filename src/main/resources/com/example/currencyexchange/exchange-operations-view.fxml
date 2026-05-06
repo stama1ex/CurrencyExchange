@@ -27,7 +27,7 @@
             <Label text="Экран содержит ключевые суммы, курс и полученную валюту" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="📆 Фильтр по дате" styleClass="mini-stat-title"/>
+            <Label text="Фильтр по дате" styleClass="mini-stat-title"/>
             <Label text="Можно быстро отследить операции за конкретный день" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
@@ -40,7 +40,7 @@
         <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
             <Button text="＋ Добавить" onAction="#addOperation" styleClass="primary-button"/>
             <Button text="✎ Изменить" onAction="#updateOperation" styleClass="secondary-button"/>
-            <Button text="🗑 Удалить" onAction="#deleteOperation" styleClass="danger-button"/>
+            <Button text="Удалить" onAction="#deleteOperation" styleClass="danger-button"/>
             <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
             <Region HBox.hgrow="ALWAYS"/>
             <VBox spacing="4">

@@ -145,18 +145,25 @@ public class IncassationController {
             }
 
             String sql = "INSERT INTO incassations(cash_desk_id, incassation_date, currency_code, operation_type, amount, status) VALUES (?, ?, ?, ?, ?, ?)";
-            try (Connection connection = DatabaseConnection.getConnection();
-                 PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setInt(1, cashDeskId);
-                statement.setDate(2, Date.valueOf(form.date()));
-                statement.setString(3, currencyCode);
-                statement.setString(4, form.type().getDbValue());
-                statement.setDouble(5, amount);
-                statement.setString(6, form.status().getDbValue());
-                statement.executeUpdate();
-                
-                // Обновляем баланс в cash_desks в зависимости от типа операции
-                updateCashDeskBalance(connection, cashDeskId, currencyCode, amount, form.type());
+            try (Connection connection = DatabaseConnection.getConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                        statement.setInt(1, cashDeskId);
+                        statement.setDate(2, Date.valueOf(form.date()));
+                        statement.setString(3, currencyCode);
+                        statement.setString(4, form.type().getDbValue());
+                        statement.setDouble(5, amount);
+                        statement.setString(6, form.status().getDbValue());
+                        statement.executeUpdate();
+                    }
+
+                    updateCashDeskBalanceIfCompleted(connection, cashDeskId, currencyCode, amount, form.type(), form.status());
+                    connection.commit();
+                } catch (SQLException | RuntimeException e) {
+                    rollbackQuietly(connection);
+                    throw e;
+                }
             }
             refreshTable();
             // Уведомляем об обновлении данных для синхронизации отчетов и баланса
@@ -183,6 +190,10 @@ public class IncassationController {
         IncassationForm form = formResult.get();
 
         try {
+            if (!ValidationService.isValidDate(form.date())) {
+                AlertUtil.warning("Валидация", "Выберите дату.");
+                return;
+            }
             if (form.cashDesk() == null || form.currency() == null) {
                 AlertUtil.warning("Валидация", "Выберите кассу и валюту.");
                 return;
@@ -196,24 +207,28 @@ public class IncassationController {
             double amount = parsePositive(form.amount(), "Сумма должна быть > 0.");
             
             try (Connection connection = DatabaseConnection.getConnection()) {
-                // Сначала откатываем старую операцию
-                revertCashDeskBalance(connection, selected.getCashDeskId(), selected.getCurrencyCode(), 
-                        selected.getAmount(), IncassationType.fromDbValue(selected.getOperationType()));
-                
-                // Применяем новую операцию
-                updateCashDeskBalance(connection, cashDeskId, currencyCode, amount, form.type());
-                
-                // Обновляем запись
-                String sql = "UPDATE incassations SET cash_desk_id=?, incassation_date=?, currency_code=?, operation_type=?, amount=?, status=? WHERE incassation_id=?";
-                try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                    statement.setInt(1, cashDeskId);
-                    statement.setDate(2, Date.valueOf(form.date()));
-                    statement.setString(3, currencyCode);
-                    statement.setString(4, form.type().getDbValue());
-                    statement.setDouble(5, amount);
-                    statement.setString(6, form.status().getDbValue());
-                    statement.setInt(7, selected.getId());
-                    statement.executeUpdate();
+                connection.setAutoCommit(false);
+                try {
+                    revertCashDeskBalanceIfCompleted(connection, selected.getCashDeskId(), selected.getCurrencyCode(),
+                            selected.getAmount(), IncassationType.fromDbValue(selected.getOperationType()), selected.getStatus());
+
+                    updateCashDeskBalanceIfCompleted(connection, cashDeskId, currencyCode, amount, form.type(), form.status());
+
+                    String sql = "UPDATE incassations SET cash_desk_id=?, incassation_date=?, currency_code=?, operation_type=?, amount=?, status=? WHERE incassation_id=?";
+                    try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                        statement.setInt(1, cashDeskId);
+                        statement.setDate(2, Date.valueOf(form.date()));
+                        statement.setString(3, currencyCode);
+                        statement.setString(4, form.type().getDbValue());
+                        statement.setDouble(5, amount);
+                        statement.setString(6, form.status().getDbValue());
+                        statement.setInt(7, selected.getId());
+                        statement.executeUpdate();
+                    }
+                    connection.commit();
+                } catch (SQLException | RuntimeException e) {
+                    rollbackQuietly(connection);
+                    throw e;
                 }
             }
             refreshTable();
@@ -235,14 +250,20 @@ public class IncassationController {
         }
 
         try (Connection connection = DatabaseConnection.getConnection()) {
-            // Откатываем операцию перед удалением
-            revertCashDeskBalance(connection, selected.getCashDeskId(), selected.getCurrencyCode(),
-                    selected.getAmount(), IncassationType.fromDbValue(selected.getOperationType()));
-            
-            String sql = "DELETE FROM incassations WHERE incassation_id=?";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setInt(1, selected.getId());
-                statement.executeUpdate();
+            connection.setAutoCommit(false);
+            try {
+                revertCashDeskBalanceIfCompleted(connection, selected.getCashDeskId(), selected.getCurrencyCode(),
+                        selected.getAmount(), IncassationType.fromDbValue(selected.getOperationType()), selected.getStatus());
+
+                String sql = "DELETE FROM incassations WHERE incassation_id=?";
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setInt(1, selected.getId());
+                    statement.executeUpdate();
+                }
+                connection.commit();
+            } catch (SQLException | RuntimeException e) {
+                rollbackQuietly(connection);
+                throw e;
             }
             refreshTable();
             // Уведомляем об обновлении данных для синхронизации отчетов и баланса
@@ -313,12 +334,6 @@ public class IncassationController {
         }
     }
 
-    @FXML
-    private void clearFilter() {
-        filterStatusBox.setValue(null);
-        refreshTable();
-    }
-
     private String getBalanceColumnName(String currencyCode) {
         return switch (currencyCode.toUpperCase()) {
             case "MDL" -> "balance_mdl";
@@ -342,6 +357,13 @@ public class IncassationController {
         }
     }
 
+    private void updateCashDeskBalanceIfCompleted(Connection connection, int cashDeskId, String currencyCode,
+                                                  double amount, IncassationType type, IncassationStatus status) throws SQLException {
+        if (status == IncassationStatus.COMPLETED) {
+            updateCashDeskBalance(connection, cashDeskId, currencyCode, amount, type);
+        }
+    }
+
     private void revertCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, 
                                        double amount, IncassationType type) throws SQLException {
         String balanceColumn = getBalanceColumnName(currencyCode);
@@ -353,6 +375,21 @@ public class IncassationController {
             statement.setDouble(1, amount);
             statement.setInt(2, cashDeskId);
             statement.executeUpdate();
+        }
+    }
+
+    private void revertCashDeskBalanceIfCompleted(Connection connection, int cashDeskId, String currencyCode,
+                                                  double amount, IncassationType type, String status) throws SQLException {
+        if (IncassationStatus.COMPLETED.getDbValue().equals(status)) {
+            revertCashDeskBalance(connection, cashDeskId, currencyCode, amount, type);
+        }
+    }
+
+    private void rollbackQuietly(Connection connection) {
+        try {
+            connection.rollback();
+        } catch (SQLException ignored) {
+            // Keep the original database error visible to the user.
         }
     }
 

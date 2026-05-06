@@ -110,19 +110,26 @@ public class ExchangeOperationController {
             double amountTo = parsePositive(form.amountTo(), "Сумма целевой валюты должна быть > 0.");
 
             String sql = "INSERT INTO exchange_operations(cash_desk_id, operation_date, currency_from, currency_to, amount_from, rate, amount_to) VALUES (?, ?, ?, ?, ?, ?, ?)";
-            try (Connection connection = DatabaseConnection.getConnection();
-                 PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setInt(1, cashDeskId);
-                  statement.setDate(2, Date.valueOf(form.operationDate()));
-                statement.setString(3, currencyFrom);
-                statement.setString(4, currencyTo);
-                statement.setDouble(5, amountFrom);
-                statement.setDouble(6, rate);
-                statement.setDouble(7, amountTo);
-                statement.executeUpdate();
-                
-                // Обновляем балансы: вычитаем amountFrom из currencyFrom, добавляем amountTo к currencyTo
-                updateExchangeOperationBalances(connection, cashDeskId, currencyFrom, currencyTo, amountFrom, amountTo);
+            try (Connection connection = DatabaseConnection.getConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                        statement.setInt(1, cashDeskId);
+                        statement.setDate(2, Date.valueOf(form.operationDate()));
+                        statement.setString(3, currencyFrom);
+                        statement.setString(4, currencyTo);
+                        statement.setDouble(5, amountFrom);
+                        statement.setDouble(6, rate);
+                        statement.setDouble(7, amountTo);
+                        statement.executeUpdate();
+                    }
+
+                    updateExchangeOperationBalances(connection, cashDeskId, currencyFrom, currencyTo, amountFrom, amountTo);
+                    connection.commit();
+                } catch (SQLException | RuntimeException e) {
+                    rollbackQuietly(connection);
+                    throw e;
+                }
             }
             refreshTable();
             // Уведомляем об обновлении данных для синхронизации отчетов и баланса
@@ -160,30 +167,38 @@ public class ExchangeOperationController {
                 AlertUtil.warning("Валидация", "Валюты обмена должны отличаться.");
                 return;
             }
+            if (!ValidationService.isValidDate(form.operationDate())) {
+                AlertUtil.warning("Валидация", "Выберите дату операции.");
+                return;
+            }
             double amountFrom = parsePositive(form.amountFrom(), "Сумма исходной валюты должна быть > 0.");
             double rate = parsePositive(form.rate(), "Курс должен быть > 0.");
             double amountTo = parsePositive(form.amountTo(), "Сумма целевой валюты должна быть > 0.");
 
             try (Connection connection = DatabaseConnection.getConnection()) {
-                // Откатываем старые операции балансов
-                revertExchangeOperationBalances(connection, selected.getCashDeskId(), selected.getCurrencyFrom(), 
-                        selected.getCurrencyTo(), selected.getAmountFrom(), selected.getAmountTo());
-                
-                // Применяем новые операции балансов
-                updateExchangeOperationBalances(connection, cashDeskId, currencyFrom, currencyTo, amountFrom, amountTo);
-                
-                // Обновляем запись
-                String sql = "UPDATE exchange_operations SET cash_desk_id=?, operation_date=?, currency_from=?, currency_to=?, amount_from=?, rate=?, amount_to=? WHERE operation_id=?";
-                try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                    statement.setInt(1, cashDeskId);
-                      statement.setDate(2, Date.valueOf(form.operationDate()));
-                    statement.setString(3, currencyFrom);
-                    statement.setString(4, currencyTo);
-                    statement.setDouble(5, amountFrom);
-                    statement.setDouble(6, rate);
-                    statement.setDouble(7, amountTo);
-                    statement.setInt(8, selected.getId());
-                    statement.executeUpdate();
+                connection.setAutoCommit(false);
+                try {
+                    revertExchangeOperationBalances(connection, selected.getCashDeskId(), selected.getCurrencyFrom(),
+                            selected.getCurrencyTo(), selected.getAmountFrom(), selected.getAmountTo());
+
+                    updateExchangeOperationBalances(connection, cashDeskId, currencyFrom, currencyTo, amountFrom, amountTo);
+
+                    String sql = "UPDATE exchange_operations SET cash_desk_id=?, operation_date=?, currency_from=?, currency_to=?, amount_from=?, rate=?, amount_to=? WHERE operation_id=?";
+                    try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                        statement.setInt(1, cashDeskId);
+                        statement.setDate(2, Date.valueOf(form.operationDate()));
+                        statement.setString(3, currencyFrom);
+                        statement.setString(4, currencyTo);
+                        statement.setDouble(5, amountFrom);
+                        statement.setDouble(6, rate);
+                        statement.setDouble(7, amountTo);
+                        statement.setInt(8, selected.getId());
+                        statement.executeUpdate();
+                    }
+                    connection.commit();
+                } catch (SQLException | RuntimeException e) {
+                    rollbackQuietly(connection);
+                    throw e;
                 }
             }
             refreshTable();
@@ -205,14 +220,20 @@ public class ExchangeOperationController {
         }
 
         try (Connection connection = DatabaseConnection.getConnection()) {
-            // Откатываем операцию перед удалением
-            revertExchangeOperationBalances(connection, selected.getCashDeskId(), selected.getCurrencyFrom(),
-                    selected.getCurrencyTo(), selected.getAmountFrom(), selected.getAmountTo());
-            
-            String sql = "DELETE FROM exchange_operations WHERE operation_id=?";
-            try (PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setInt(1, selected.getId());
-                statement.executeUpdate();
+            connection.setAutoCommit(false);
+            try {
+                revertExchangeOperationBalances(connection, selected.getCashDeskId(), selected.getCurrencyFrom(),
+                        selected.getCurrencyTo(), selected.getAmountFrom(), selected.getAmountTo());
+
+                String sql = "DELETE FROM exchange_operations WHERE operation_id=?";
+                try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                    statement.setInt(1, selected.getId());
+                    statement.executeUpdate();
+                }
+                connection.commit();
+            } catch (SQLException | RuntimeException e) {
+                rollbackQuietly(connection);
+                throw e;
             }
             refreshTable();
             // Уведомляем об обновлении данных для синхронизации отчетов и баланса
@@ -341,6 +362,14 @@ public class ExchangeOperationController {
             statement.setDouble(2, amountTo);
             statement.setInt(3, cashDeskId);
             statement.executeUpdate();
+        }
+    }
+
+    private void rollbackQuietly(Connection connection) {
+        try {
+            connection.rollback();
+        } catch (SQLException ignored) {
+            // Keep the original database error visible to the user.
         }
     }
 

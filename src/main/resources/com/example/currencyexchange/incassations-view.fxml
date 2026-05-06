@@ -40,7 +40,7 @@
         <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
             <Button text="＋ Добавить" onAction="#addIncassation" styleClass="primary-button"/>
             <Button text="✎ Изменить" onAction="#updateIncassation" styleClass="secondary-button"/>
-            <Button text="🗑 Удалить" onAction="#deleteIncassation" styleClass="danger-button"/>
+            <Button text="Удалить" onAction="#deleteIncassation" styleClass="danger-button"/>
             <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Label text="Статус" styleClass="filter-label"/>

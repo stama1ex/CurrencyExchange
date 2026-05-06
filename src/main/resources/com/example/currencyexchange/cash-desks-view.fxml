@@ -25,7 +25,7 @@
 
     <HBox spacing="16">
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="🏦 Сеть отделений" styleClass="mini-stat-title"/>
+            <Label text="Сеть отделений" styleClass="mini-stat-title"/>
             <Label text="Поддерживайте корректные лимиты и статусы касс" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
@@ -42,7 +42,7 @@
         <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
             <Button text="＋ Добавить" onAction="#addCashDesk" styleClass="primary-button"/>
             <Button text="✎ Изменить" onAction="#updateCashDesk" styleClass="secondary-button"/>
-            <Button text="🗑 Удалить" onAction="#deleteCashDesk" styleClass="danger-button"/>
+            <Button text="Удалить" onAction="#deleteCashDesk" styleClass="danger-button"/>
             <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
             <Region HBox.hgrow="ALWAYS"/>
             <StackPane prefWidth="250">

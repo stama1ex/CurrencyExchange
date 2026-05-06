@@ -1,113 +1,124 @@
 package com.example.currencyexchange.service;
 
 import com.example.currencyexchange.DatabaseConnection;
+import com.example.currencyexchange.enums.IncassationStatus;
+import com.example.currencyexchange.enums.IncassationType;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Сервис синхронизации и расчета баланса касс.
- * Рассчитывает баланс кассы на основе завершенных операций (инкассаций и обменов).
+ * Calculates cash desk balance movements from completed cash logistics and exchange operations.
  */
 public class BalanceSyncService {
-    
-    /**
-     * Рассчитывает баланс кассы для конкретной валюты
-     * @param cashDeskId ID кассы
-     * @param currencyCode Код валюты
-     * @return Баланс (положительный для пополнений, отрицательный для инкассаций)
-     */
+    private static final Logger LOGGER = Logger.getLogger(BalanceSyncService.class.getName());
+
     public double calculateBalance(int cashDeskId, String currencyCode) {
-        double balance = 0.0;
-        
-        // Рассчитываем баланс из инкассаций (только выполненные: "Выполнена")
-        String incassationSql = 
-            "SELECT operation_type, SUM(amount) as total FROM incassations " +
-            "WHERE cash_desk_id = ? AND currency_code = ? AND status = 'Выполнена' " +
-            "GROUP BY operation_type";
-        
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(incassationSql)) {
-            
-            statement.setInt(1, cashDeskId);
-            statement.setString(2, currencyCode.toUpperCase());
-            
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    String operationType = resultSet.getString("operation_type");
-                    double amount = resultSet.getDouble("total");
-                    
-                    // "Пополнение" добавляет, "Инкассация" вычитает
-                    if ("Пополнение".equals(operationType)) {
-                        balance += amount;
-                    } else if ("Инкассация".equals(operationType)) {
-                        balance -= amount;
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Ошибка при расчете баланса из инкассаций: " + e.getMessage());
+        String normalizedCurrency = normalizeCurrencyCode(currencyCode);
+        if (normalizedCurrency.isEmpty()) {
+            return 0.0;
         }
-        
-        return balance;
+
+        return calculateIncassationDelta(cashDeskId, normalizedCurrency)
+                + calculateExchangeOperationDelta(cashDeskId, normalizedCurrency);
     }
-    
-    /**
-     * Рассчитывает баланс для всех валют кассы
-     * @param cashDeskId ID кассы
-     * @return Map валют и их балансов
-     */
+
     public Map<String, Double> calculateAllBalances(int cashDeskId) {
-        Map<String, Double> balances = new HashMap<>();
-        
-        // Получаем все валюты с инкассациями для этой кассы
-        String currencySql = 
-            "SELECT DISTINCT currency_code FROM incassations WHERE cash_desk_id = ?";
-        
+        Map<String, Double> balances = new LinkedHashMap<>();
+        String sql = "SELECT currency_code FROM currencies ORDER BY currency_code";
+
         try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(currencySql)) {
-            
-            statement.setInt(1, cashDeskId);
-            
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    String currencyCode = resultSet.getString("currency_code");
-                    double balance = calculateBalance(cashDeskId, currencyCode);
-                    balances.put(currencyCode, balance);
-                }
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                String currencyCode = resultSet.getString("currency_code");
+                balances.put(currencyCode, calculateBalance(cashDeskId, currencyCode));
             }
         } catch (SQLException e) {
-            System.err.println("Ошибка при получении валют: " + e.getMessage());
+            LOGGER.log(Level.WARNING, "Unable to load currencies for balance calculation", e);
         }
-        
+
         return balances;
     }
-    
-    /**
-     * Проверяет, есть ли какие-либо изменения в операциях для кассы
-     * (используется для определения необходимости обновления)
-     */
+
     public boolean hasOperations(int cashDeskId) {
-        String sql = "SELECT COUNT(*) as count FROM incassations WHERE cash_desk_id = ? AND status = 'Выполнена'";
-        
+        String sql = "SELECT EXISTS (" +
+                "SELECT 1 FROM incassations WHERE cash_desk_id = ? AND status = ? " +
+                "UNION ALL " +
+                "SELECT 1 FROM exchange_operations WHERE cash_desk_id = ?" +
+                ") AS has_operations";
+
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            
             statement.setInt(1, cashDeskId);
-            
+            statement.setString(2, IncassationStatus.COMPLETED.getDbValue());
+            statement.setInt(3, cashDeskId);
+
             try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getInt("count") > 0;
-                }
+                return resultSet.next() && resultSet.getBoolean("has_operations");
             }
         } catch (SQLException e) {
-            System.err.println("Ошибка при проверке операций: " + e.getMessage());
+            LOGGER.log(Level.WARNING, "Unable to check cash desk operations", e);
+            return false;
         }
-        
-        return false;
+    }
+
+    private double calculateIncassationDelta(int cashDeskId, String currencyCode) {
+        String sql = "SELECT COALESCE(SUM(CASE " +
+                "WHEN operation_type = ? THEN amount " +
+                "WHEN operation_type = ? THEN -amount " +
+                "ELSE 0 END), 0) AS delta " +
+                "FROM incassations " +
+                "WHERE cash_desk_id = ? AND currency_code = ? AND status = ?";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, IncassationType.TOP_UP.getDbValue());
+            statement.setString(2, IncassationType.INCASSATION.getDbValue());
+            statement.setInt(3, cashDeskId);
+            statement.setString(4, currencyCode);
+            statement.setString(5, IncassationStatus.COMPLETED.getDbValue());
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? resultSet.getDouble("delta") : 0.0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.WARNING, "Unable to calculate incassation balance delta", e);
+            return 0.0;
+        }
+    }
+
+    private double calculateExchangeOperationDelta(int cashDeskId, String currencyCode) {
+        String sql = "SELECT " +
+                "COALESCE(SUM(CASE WHEN currency_to = ? THEN amount_to ELSE 0 END), 0) - " +
+                "COALESCE(SUM(CASE WHEN currency_from = ? THEN amount_from ELSE 0 END), 0) AS delta " +
+                "FROM exchange_operations " +
+                "WHERE cash_desk_id = ? AND (currency_to = ? OR currency_from = ?)";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, currencyCode);
+            statement.setString(2, currencyCode);
+            statement.setInt(3, cashDeskId);
+            statement.setString(4, currencyCode);
+            statement.setString(5, currencyCode);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? resultSet.getDouble("delta") : 0.0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.WARNING, "Unable to calculate exchange operation balance delta", e);
+            return 0.0;
+        }
+    }
+
+    private String normalizeCurrencyCode(String currencyCode) {
+        return currencyCode == null ? "" : currencyCode.trim().toUpperCase();
     }
 }
-

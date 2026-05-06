@@ -25,11 +25,11 @@
 
     <HBox spacing="16">
         <VBox styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
-            <Label text="💱 Всего валют" styleClass="mini-stat-title"/>
+            <Label text="Всего валют" styleClass="mini-stat-title"/>
             <Label fx:id="currenciesTotalLabel" text="0" styleClass="mini-stat-value"/>
         </VBox>
         <VBox styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
-            <Label text="✅ Выбрана" styleClass="mini-stat-title"/>
+            <Label text="Выбрана" styleClass="mini-stat-title"/>
             <Label fx:id="selectedCurrencyLabel" text="—" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
         <VBox styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
@@ -42,7 +42,7 @@
         <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
             <Button text="＋ Добавить" onAction="#addCurrency" styleClass="primary-button"/>
             <Button text="✎ Изменить" onAction="#updateCurrency" styleClass="secondary-button"/>
-            <Button text="🗑 Удалить" onAction="#deleteCurrency" styleClass="danger-button"/>
+            <Button text="Удалить" onAction="#deleteCurrency" styleClass="danger-button"/>
             <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
             <Region HBox.hgrow="ALWAYS"/>
             <StackPane prefWidth="320">

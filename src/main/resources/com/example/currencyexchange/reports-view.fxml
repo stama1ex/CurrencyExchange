@@ -22,7 +22,7 @@
 
     <HBox spacing="16">
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="📊 Готовые аналитические представления" styleClass="mini-stat-title"/>
+            <Label text="Готовые аналитические представления" styleClass="mini-stat-title"/>
             <Label text="Выберите нужный отчет из списка и просматривайте данные прямо в интерфейсе" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">

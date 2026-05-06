@@ -8,7 +8,12 @@ import javafx.event.EventTarget;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.control.ComboBoxBase;
+import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextInputControl;
+import javafx.scene.control.TreeView;
 import javafx.scene.input.ScrollEvent;
 import javafx.util.Duration;
 
@@ -54,7 +59,9 @@ public final class SmoothScrollUtil {
     }
 
     private static void handleScroll(ScrollPane scrollPane, ScrollEvent event) {
-        if (event.getDeltaY() == 0 || isFromNestedScrollPane(scrollPane, event.getTarget())) {
+        if (event.getDeltaY() == 0
+                || isFromNestedScrollPane(scrollPane, event.getTarget())
+                || isFromControlThatHandlesScroll(scrollPane, event.getTarget())) {
             return;
         }
 
@@ -119,6 +126,25 @@ public final class SmoothScrollUtil {
         Node current = node;
         while (current != null && current != scrollPane) {
             if (current instanceof ScrollPane) {
+                return true;
+            }
+            current = current.getParent();
+        }
+        return false;
+    }
+
+    private static boolean isFromControlThatHandlesScroll(ScrollPane scrollPane, EventTarget target) {
+        if (!(target instanceof Node node)) {
+            return false;
+        }
+
+        Node current = node;
+        while (current != null && current != scrollPane) {
+            if (current instanceof TableView<?>
+                    || current instanceof ListView<?>
+                    || current instanceof TreeView<?>
+                    || current instanceof ComboBoxBase<?>
+                    || current instanceof TextInputControl) {
                 return true;
             }
             current = current.getParent();
