@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="18" styleClass="page" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.example.currencyexchange.controller.ReportController">
+    <padding><Insets top="22" right="22" bottom="22" left="22"/></padding>
+    <HBox alignment="CENTER_LEFT" styleClass="page-header">
+        <VBox spacing="5">
+            <Label text="Отчеты" styleClass="page-title"/>
+            <Label text="Экспортируемые представления с акцентом на аналитику и чистый вывод" styleClass="page-subtitle"/>
+        </VBox>
+        <Region HBox.hgrow="ALWAYS"/>
+    </HBox>
+
+    <HBox spacing="16">
+        <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
+            <Label text="📊 Готовые аналитические представления" styleClass="mini-stat-title"/>
+            <Label text="Выберите нужный отчет из списка и просматривайте данные прямо в интерфейсе" styleClass="mini-stat-description" wrapText="true"/>
+        </VBox>
+        <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
+            <Label text="⬇ Экспорт CSV" styleClass="mini-stat-title"/>
+            <Label text="Любой отчет можно сохранить для последующей передачи или анализа" styleClass="mini-stat-description" wrapText="true"/>
+        </VBox>
+    </HBox>
+
+    <VBox styleClass="section-card" spacing="0" VBox.vgrow="ALWAYS">
+        <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
+            <Label text="Тип отчета" styleClass="filter-label"/>
+            <ComboBox fx:id="reportTypeBox" prefWidth="420"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="⬇ Экспорт CSV" onAction="#exportCsv" styleClass="primary-button"/>
+        </HBox>
+        <TableView fx:id="reportTable" VBox.vgrow="ALWAYS" styleClass="modern-table"/>
+    </VBox>
+</VBox>

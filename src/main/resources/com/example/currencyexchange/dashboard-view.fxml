@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.String?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.BarChart?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.example.currencyexchange.controller.DashboardController"
+      spacing="18" styleClass="page">
+    <padding><Insets top="22" right="22" bottom="22" left="22"/></padding>
+
+    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="page-header">
+        <VBox spacing="5">
+            <Label text="Dashboard" styleClass="page-title"/>
+            <Label text="Современная аналитическая панель по сети обменных касс" styleClass="page-subtitle"/>
+        </VBox>
+    </HBox>
+
+    <HBox spacing="16">
+        <VBox spacing="8" prefWidth="220" HBox.hgrow="ALWAYS">
+            <styleClass>
+                <String fx:value="stat-card"/>
+                <String fx:value="gradient-blue"/>
+            </styleClass>
+            <Label text="💱 Валюты" styleClass="stat-kicker"/>
+            <Label fx:id="currenciesCount" text="0" styleClass="stat-value"/>
+            <Label text="активных валют в системе" styleClass="stat-title"/>
+        </VBox>
+        <VBox spacing="8" prefWidth="220" HBox.hgrow="ALWAYS">
+            <styleClass>
+                <String fx:value="stat-card"/>
+                <String fx:value="gradient-green"/>
+            </styleClass>
+            <Label text="🏦 Кассы" styleClass="stat-kicker"/>
+            <Label fx:id="cashDesksCount" text="0" styleClass="stat-value"/>
+            <Label text="обменных точек подключено" styleClass="stat-title"/>
+        </VBox>
+        <VBox spacing="8" prefWidth="220" HBox.hgrow="ALWAYS">
+            <styleClass>
+                <String fx:value="stat-card"/>
+                <String fx:value="gradient-orange"/>
+            </styleClass>
+            <Label text="📈 Операции" styleClass="stat-kicker"/>
+            <Label fx:id="operationsCount" text="0" styleClass="stat-value"/>
+            <Label text="обменных операций проведено" styleClass="stat-title"/>
+        </VBox>
+        <VBox spacing="8" prefWidth="220" HBox.hgrow="ALWAYS">
+            <styleClass>
+                <String fx:value="stat-card"/>
+                <String fx:value="gradient-pink"/>
+            </styleClass>
+            <Label text="🚚 Инкассации" styleClass="stat-kicker"/>
+            <Label fx:id="incassationsCount" text="0" styleClass="stat-value"/>
+            <Label text="операций инкассации оформлено" styleClass="stat-title"/>
+        </VBox>
+    </HBox>
+
+    <HBox spacing="18" VBox.vgrow="ALWAYS">
+        <VBox spacing="14" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+            <styleClass>
+                <String fx:value="section-card"/>
+            </styleClass>
+            <HBox alignment="CENTER_LEFT">
+                <VBox spacing="4">
+                    <Label text="Динамика обменных операций" styleClass="section-title"/>
+                    <Label text="Последние 7 дней" styleClass="section-subtitle"/>
+                </VBox>
+            </HBox>
+            <BarChart fx:id="operationsChart" categoryGap="18" barGap="6" legendVisible="false" VBox.vgrow="ALWAYS" styleClass="modern-chart">
+                <xAxis>
+                    <CategoryAxis side="BOTTOM"/>
+                </xAxis>
+                <yAxis>
+                    <NumberAxis side="LEFT" forceZeroInRange="true"/>
+                </yAxis>
+            </BarChart>
+        </VBox>
+
+        <VBox spacing="14" prefWidth="340">
+            <styleClass>
+                <String fx:value="section-card"/>
+                <String fx:value="compact-card"/>
+            </styleClass>
+            <VBox spacing="4">
+                <Label text="Рекомендации по кассам" styleClass="section-title"/>
+                <Label text="Распределение текущих статусов" styleClass="section-subtitle"/>
+            </VBox>
+            <PieChart fx:id="recommendationChart" labelsVisible="false" legendVisible="false" styleClass="modern-pie-chart" VBox.vgrow="ALWAYS"/>
+        </VBox>
+    </HBox>
+
+    <VBox spacing="14">
+        <styleClass>
+            <String fx:value="section-card"/>
+        </styleClass>
+        <VBox spacing="4">
+            <Label text="Кассы, требующие внимания" styleClass="section-title"/>
+            <Label text="Вместо большой таблицы — компактная лента приоритетов" styleClass="section-subtitle"/>
+        </VBox>
+        <VBox fx:id="alertsContainer" spacing="12"/>
+    </VBox>
+</VBox>

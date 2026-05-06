@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="18" styleClass="page" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.example.currencyexchange.controller.ExchangeRateController">
+    <padding><Insets top="22" right="22" bottom="22" left="22"/></padding>
+
+    <HBox alignment="CENTER_LEFT" styleClass="page-header">
+        <VBox spacing="5">
+            <Label text="Курсы валют" styleClass="page-title"/>
+            <Label text="Табличный экран с акцентом на чистую типографику и быстрые действия" styleClass="page-subtitle"/>
+        </VBox>
+        <Region HBox.hgrow="ALWAYS"/>
+    </HBox>
+
+    <HBox spacing="16">
+        <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
+            <Label text="📌 Управляйте покупкой и продажей" styleClass="mini-stat-title"/>
+            <Label text="Экран подходит для ежедневного обновления курса" styleClass="mini-stat-description" wrapText="true"/>
+        </VBox>
+        <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
+            <Label text="🔎 Быстрый фильтр по валюте" styleClass="mini-stat-title"/>
+            <Label text="Введите код ISO, чтобы мгновенно отфильтровать таблицу" styleClass="mini-stat-description" wrapText="true"/>
+        </VBox>
+        <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
+            <Label text="📅 История изменений" styleClass="mini-stat-title"/>
+            <Label text="Курсы выводятся в порядке последних дат" styleClass="mini-stat-description" wrapText="true"/>
+        </VBox>
+    </HBox>
+
+    <VBox styleClass="section-card" spacing="0" VBox.vgrow="ALWAYS">
+        <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
+            <Button text="＋ Добавить" onAction="#addRate" styleClass="primary-button"/>
+            <Button text="✎ Изменить" onAction="#updateRate" styleClass="secondary-button"/>
+            <Button text="🗑 Удалить" onAction="#deleteRate" styleClass="danger-button"/>
+            <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <StackPane prefWidth="300">
+                <TextField fx:id="filterCurrencyIdField" promptText="Фильтр по коду валюты" prefWidth="300" styleClass="search-field modern-search-field"/>
+                <Button text="×" onAction="#clearFilter" focusTraversable="false" StackPane.alignment="CENTER_RIGHT" styleClass="clear-button"/>
+            </StackPane>
+            <Button text="Фильтр" onAction="#filterByCurrency" styleClass="primary-button"/>
+        </HBox>
+        <TableView fx:id="rateTable" VBox.vgrow="ALWAYS" styleClass="modern-table">
+            <columns>
+                <TableColumn fx:id="idColumn" text="ID курса" prefWidth="70" visible="false"/>
+                <TableColumn fx:id="currencyIdColumn" text="Валюта" prefWidth="230"/>
+                <TableColumn fx:id="dateColumn" text="Дата" prefWidth="170"/>
+                <TableColumn fx:id="buyRateColumn" text="Покупка" prefWidth="170"/>
+                <TableColumn fx:id="sellRateColumn" text="Продажа" prefWidth="170"/>
+            </columns>
+        </TableView>
+    </VBox>
+</VBox>

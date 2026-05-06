@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="/HelloApplication (snapshot).java">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="/HelloApplication (snapshot).java" />
+              <option name="originalContent" value="package com.example.currencyexchange;&#10;&#10;import javafx.application.Application;&#10;import javafx.fxml.FXMLLoader;&#10;import javafx.scene.Scene;&#10;import javafx.stage.Stage;&#10;&#10;import java.io.IOException;&#10;&#10;public class HelloApplication extends Application {&#10;    @Override&#10;    public void start(Stage stage) throws IOException {&#10;        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource(&quot;hello-view.fxml&quot;));&#10;        Scene scene = new Scene(fxmlLoader.load(), 320, 240);&#10;        stage.setTitle(&quot;Hello!&quot;);&#10;        stage.setScene(scene);&#10;        stage.show();&#10;    }&#10;}&#10;" />
+              <option name="updatedContent" value="package com.example.currencyexchange;&#10;&#10;import javafx.application.Application;&#10;import javafx.fxml.FXMLLoader;&#10;import javafx.scene.Scene;&#10;import javafx.stage.Stage;&#10;&#10;import java.io.IOException;&#10;&#10;public class HelloApplication extends Application {&#10;    @Override&#10;    public void start(Stage stage) throws IOException {&#10;        // Проверяем подключение к БД при запуске&#10;        checkDatabase();&#10;&#10;        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource(&quot;hello-view.fxml&quot;));&#10;        Scene scene = new Scene(fxmlLoader.load(), 320, 240);&#10;        stage.setTitle(&quot;Hello!&quot;);&#10;        stage.setScene(scene);&#10;        stage.show();&#10;    }&#10;&#10;    /**&#10;     * Проверяет подключение к БД и выводит данные&#10;     */&#10;    private void checkDatabase() {&#10;        System.out.println(&quot;\n&quot; + &quot;=&quot;.repeat(80));&#10;        System.out.println(&quot;ПРОВЕРКА ПОДКЛЮЧЕНИЯ К БД&quot;);&#10;        System.out.println(&quot;=&quot;.repeat(80));&#10;&#10;        if (DatabaseConnection.testConnection()) {&#10;            // Выводим данные из таблиц&#10;            DatabaseConnection.printCurrencies();&#10;            DatabaseConnection.printCashDesks();&#10;            DatabaseConnection.printCashDeskStatus();&#10;        } else {&#10;            System.err.println(&quot;\n⚠️  ВНИМАНИЕ: Не удалось подключиться к БД!&quot;);&#10;            System.err.println(&quot;Проверьте параметры подключения в классе DatabaseConnection:&quot;);&#10;            System.err.println(&quot;  - URL БД&quot;);&#10;            System.err.println(&quot;  - Имя пользователя&quot;);&#10;            System.err.println(&quot;  - Пароль&quot;);&#10;        }&#10;    }&#10;}&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
