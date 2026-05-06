@@ -7,7 +7,6 @@ import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.ButtonBar;
@@ -32,6 +31,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class ExchangeRateController {
+    private static final Currency ALL_CURRENCIES = new Currency("", "Все валюты");
+
     @FXML
     private TableView<ExchangeRate> rateTable;
     @FXML
@@ -46,7 +47,9 @@ public class ExchangeRateController {
     private TableColumn<ExchangeRate, Double> sellRateColumn;
 
     @FXML
-    private TextField filterCurrencyIdField;
+    private ComboBox<Currency> filterCurrencyBox;
+    @FXML
+    private DatePicker filterDatePicker;
 
     private final ObservableList<ExchangeRate> data = FXCollections.observableArrayList();
 
@@ -58,6 +61,16 @@ public class ExchangeRateController {
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("rateDate"));
         buyRateColumn.setCellValueFactory(new PropertyValueFactory<>("buyRateMdl"));
         sellRateColumn.setCellValueFactory(new PropertyValueFactory<>("sellRateMdl"));
+
+        filterCurrencyBox.getItems().setAll(loadFilterCurrencies());
+        filterCurrencyBox.getSelectionModel().selectFirst();
+        filterCurrencyBox.valueProperty().addListener((obs, oldVal, newVal) -> applyFilters());
+        filterDatePicker.valueProperty().addListener((obs, oldVal, newVal) -> applyFilters());
+        filterDatePicker.getEditor().textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == null || newVal.isBlank()) {
+                filterDatePicker.setValue(null);
+            }
+        });
 
         rateTable.setItems(data);
         refreshTable();
@@ -167,71 +180,55 @@ public class ExchangeRateController {
 
     @FXML
     private void refreshTable() {
+        applyFilters();
+    }
+
+    private void applyFilters() {
+        Currency selectedCurrency = filterCurrencyBox.getValue();
+        String currencyCode = selectedCurrency == null ? "" : selectedCurrency.getCode();
+        loadRates(currencyCode, filterDatePicker.getValue());
+    }
+
+    private void loadRates(String currencyCode, LocalDate rateDate) {
         data.clear();
-        String sql = "SELECT r.rate_id, r.currency_code, c.currency_name, r.rate_date, r.buy_rate_mdl, r.sell_rate_mdl " +
-                "FROM exchange_rates r JOIN currencies c ON c.currency_code = r.currency_code ORDER BY r.rate_date DESC, r.rate_id DESC";
+        StringBuilder sql = new StringBuilder(
+                "SELECT r.rate_id, r.currency_code, c.currency_name, r.rate_date, r.buy_rate_mdl, r.sell_rate_mdl " +
+                        "FROM exchange_rates r JOIN currencies c ON c.currency_code = r.currency_code WHERE 1=1");
+        boolean hasCurrency = ValidationService.isNotBlank(currencyCode);
+        boolean hasDate = rateDate != null;
+        if (hasCurrency) {
+            sql.append(" AND r.currency_code=?");
+        }
+        if (hasDate) {
+            sql.append(" AND r.rate_date=?");
+        }
+        sql.append(" ORDER BY r.rate_date DESC, r.rate_id DESC");
 
         try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
+             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+            int index = 1;
+            if (hasCurrency) {
+                statement.setString(index++, currencyCode);
+            }
+            if (hasDate) {
+                statement.setDate(index, Date.valueOf(rateDate));
+            }
 
-            while (resultSet.next()) {
-                data.add(new ExchangeRate(
-                        resultSet.getInt("rate_id"),
-                        resultSet.getString("currency_code"),
-                        resultSet.getString("currency_name"),
-                        resultSet.getDate("rate_date").toLocalDate(),
-                        resultSet.getDouble("buy_rate_mdl"),
-                        resultSet.getDouble("sell_rate_mdl")
-                ));
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    data.add(new ExchangeRate(
+                            resultSet.getInt("rate_id"),
+                            resultSet.getString("currency_code"),
+                            resultSet.getString("currency_name"),
+                            resultSet.getDate("rate_date").toLocalDate(),
+                            resultSet.getDouble("buy_rate_mdl"),
+                            resultSet.getDouble("sell_rate_mdl")
+                    ));
+                }
             }
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось загрузить курсы: " + e.getMessage());
         }
-    }
-
-    @FXML
-    private void filterByCurrency() {
-        String raw = filterCurrencyIdField.getText().trim();
-        if (raw.isEmpty()) {
-            refreshTable();
-            return;
-        }
-
-        try {
-            String currencyCode = raw.toUpperCase();
-            if (currencyCode.length() != 3) {
-                AlertUtil.warning("Валидация", "Код валюты должен содержать 3 символа.");
-                return;
-            }
-            data.clear();
-            String sql = "SELECT r.rate_id, r.currency_code, c.currency_name, r.rate_date, r.buy_rate_mdl, r.sell_rate_mdl " +
-                    "FROM exchange_rates r JOIN currencies c ON c.currency_code = r.currency_code WHERE r.currency_code=? ORDER BY r.rate_date DESC, r.rate_id DESC";
-            try (Connection connection = DatabaseConnection.getConnection();
-                 PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setString(1, currencyCode);
-                try (ResultSet resultSet = statement.executeQuery()) {
-                    while (resultSet.next()) {
-                        data.add(new ExchangeRate(
-                                resultSet.getInt("rate_id"),
-                                resultSet.getString("currency_code"),
-                                resultSet.getString("currency_name"),
-                                resultSet.getDate("rate_date").toLocalDate(),
-                                resultSet.getDouble("buy_rate_mdl"),
-                                resultSet.getDouble("sell_rate_mdl")
-                        ));
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            AlertUtil.error("Ошибка БД", "Не удалось применить фильтр: " + e.getMessage());
-        }
-    }
-
-    @FXML
-    private void clearFilter() {
-        filterCurrencyIdField.clear();
-        refreshTable();
     }
 
     private double parsePositive(String value, String message) {
@@ -315,6 +312,13 @@ public class ExchangeRateController {
             AlertUtil.error("Ошибка БД", "Не удалось загрузить валюты: " + e.getMessage());
             return java.util.Collections.emptyList();
         }
+    }
+
+    private List<Currency> loadFilterCurrencies() {
+        List<Currency> currencies = new java.util.ArrayList<>();
+        currencies.add(ALL_CURRENCIES);
+        currencies.addAll(loadCurrencies());
+        return currencies;
     }
 
     private record RateForm(String currencyCode, LocalDate rateDate, String buyRate, String sellRate) {

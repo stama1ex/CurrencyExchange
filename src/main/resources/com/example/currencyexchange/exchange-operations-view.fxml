@@ -6,7 +6,6 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
@@ -17,7 +16,7 @@
     <HBox alignment="CENTER_LEFT" styleClass="page-header">
         <VBox spacing="5">
             <Label text="Операции обмена" styleClass="page-title"/>
-            <Label text="История сделок с удобной фильтрацией по дате и валюте" styleClass="page-subtitle"/>
+            <Label text="История сделок с мгновенной фильтрацией по дате" styleClass="page-subtitle"/>
         </VBox>
         <Region HBox.hgrow="ALWAYS"/>
     </HBox>
@@ -32,8 +31,8 @@
             <Label text="Можно быстро отследить операции за конкретный день" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="🌐 Фильтр по валюте" styleClass="mini-stat-title"/>
-            <Label text="Удобно для анализа популярных направлений обмена" styleClass="mini-stat-description" wrapText="true"/>
+            <Label text="🧾 Журнал операций" styleClass="mini-stat-title"/>
+            <Label text="Все записи отсортированы по дате, самые свежие сверху" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
     </HBox>
 
@@ -43,13 +42,11 @@
             <Button text="✎ Изменить" onAction="#updateOperation" styleClass="secondary-button"/>
             <Button text="🗑 Удалить" onAction="#deleteOperation" styleClass="danger-button"/>
             <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
-            <Button text="⟲ Сбросить" onAction="#clearFilters" styleClass="secondary-button"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <Label text="Дата" styleClass="filter-label"/>
-            <DatePicker fx:id="filterDatePicker" prefWidth="140"/>
-            <Label text="Валюта" styleClass="filter-label"/>
-            <TextField fx:id="filterCurrencyCodeField" prefWidth="100" styleClass="search-field modern-search-field"/>
-            <Button text="Фильтр" onAction="#applyFilter" styleClass="primary-button"/>
+            <VBox spacing="4">
+                <Label text="Дата" styleClass="filter-label"/>
+                <DatePicker fx:id="filterDatePicker" prefWidth="180" styleClass="flat-date-picker"/>
+            </VBox>
         </HBox>
         <TableView fx:id="operationTable" VBox.vgrow="ALWAYS" styleClass="modern-table">
             <columns>

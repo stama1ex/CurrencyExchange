@@ -4,6 +4,7 @@ import com.example.currencyexchange.DatabaseConnection;
 import com.example.currencyexchange.model.Currency;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
+import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -32,6 +33,8 @@ public class CurrencyController {
     @FXML
     private TextField searchField;
     @FXML
+    private Button clearSearchButton;
+    @FXML
     private TilePane currencyCardsContainer;
     @FXML
     private Label currenciesTotalLabel;
@@ -45,6 +48,9 @@ public class CurrencyController {
 
     @FXML
     public void initialize() {
+        clearSearchButton.visibleProperty().bind(Bindings.isNotEmpty(searchField.textProperty()));
+        clearSearchButton.managedProperty().bind(clearSearchButton.visibleProperty());
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> searchCurrencies());
         refreshTable();
     }
 
@@ -145,7 +151,6 @@ public class CurrencyController {
     @FXML
     private void clearSearch() {
         searchField.clear();
-        refreshTable();
     }
 
     private void loadCurrencies(String sql, String searchValue) {
@@ -205,7 +210,7 @@ public class CurrencyController {
         }
         card.setPadding(new Insets(18));
         card.setPrefWidth(230);
-        card.setMinWidth(220);
+        card.setMinWidth(300);
         card.setMaxWidth(260);
 
         HBox top = new HBox(8);

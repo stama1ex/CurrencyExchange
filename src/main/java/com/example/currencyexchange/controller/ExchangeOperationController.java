@@ -54,8 +54,6 @@ public class ExchangeOperationController {
 
     @FXML
     private DatePicker filterDatePicker;
-    @FXML
-    private TextField filterCurrencyCodeField;
 
     private final ObservableList<ExchangeOperation> data = FXCollections.observableArrayList();
 
@@ -70,6 +68,13 @@ public class ExchangeOperationController {
         amountFromColumn.setCellValueFactory(new PropertyValueFactory<>("amountFrom"));
         rateColumn.setCellValueFactory(new PropertyValueFactory<>("rate"));
         amountToColumn.setCellValueFactory(new PropertyValueFactory<>("amountTo"));
+
+        filterDatePicker.valueProperty().addListener((obs, oldVal, newVal) -> applyFilter());
+        filterDatePicker.getEditor().textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == null || newVal.isBlank()) {
+                filterDatePicker.setValue(null);
+            }
+        });
 
         operationTable.setItems(data);
         refreshTable();
@@ -253,36 +258,23 @@ public class ExchangeOperationController {
     @FXML
     private void applyFilter() {
         data.clear();
+        LocalDate selectedDate = filterDatePicker.getValue();
+        if (selectedDate == null) {
+            refreshTable();
+            return;
+        }
 
-        StringBuilder sql = new StringBuilder(
+        String sql =
                 "SELECT eo.operation_id, eo.cash_desk_id, cd.cash_desk_name, eo.operation_date, eo.currency_from, cf.currency_name AS currency_from_name, " +
                         "eo.currency_to, ct.currency_name AS currency_to_name, eo.amount_from, eo.rate, eo.amount_to " +
                         "FROM exchange_operations eo " +
                         "JOIN cash_desks cd ON cd.cash_desk_id = eo.cash_desk_id " +
                         "JOIN currencies cf ON cf.currency_code = eo.currency_from " +
-                        "JOIN currencies ct ON ct.currency_code = eo.currency_to WHERE 1=1");
-        boolean hasDate = filterDatePicker.getValue() != null;
-        boolean hasCurrency = ValidationService.isNotBlank(filterCurrencyCodeField.getText());
-
-        if (hasDate) {
-            sql.append(" AND operation_date=?");
-        }
-        if (hasCurrency) {
-            sql.append(" AND (currency_from=? OR currency_to=?)");
-        }
-            sql.append(" ORDER BY eo.operation_date DESC, eo.operation_id DESC");
+                        "JOIN currencies ct ON ct.currency_code = eo.currency_to WHERE eo.operation_date=? ORDER BY eo.operation_date DESC, eo.operation_id DESC";
 
         try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
-            int idx = 1;
-            if (hasDate) {
-                statement.setDate(idx++, Date.valueOf(filterDatePicker.getValue()));
-            }
-            if (hasCurrency) {
-                String code = filterCurrencyCodeField.getText().trim().toUpperCase();
-                statement.setString(idx++, code);
-                statement.setString(idx, code);
-            }
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setDate(1, Date.valueOf(selectedDate));
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -306,13 +298,6 @@ public class ExchangeOperationController {
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось применить фильтр: " + e.getMessage());
         }
-    }
-
-    @FXML
-    private void clearFilters() {
-        filterDatePicker.setValue(null);
-        filterCurrencyCodeField.clear();
-        refreshTable();
     }
 
     private String getBalanceColumnName(String currencyCode) {

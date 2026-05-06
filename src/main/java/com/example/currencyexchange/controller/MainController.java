@@ -94,10 +94,12 @@ public class MainController {
     private ScrollPane createContentScrollPane(Node node) {
         if (node instanceof Region region) {
             region.setMaxWidth(Double.MAX_VALUE);
+            region.setMaxHeight(Double.MAX_VALUE);
         }
 
         ScrollPane scrollPane = new ScrollPane(node);
         scrollPane.setFitToWidth(true);
+        scrollPane.setFitToHeight(true);
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         scrollPane.setPannable(true);

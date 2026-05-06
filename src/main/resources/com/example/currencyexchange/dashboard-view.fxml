@@ -73,7 +73,7 @@
                     <Label text="Последние 7 дней" styleClass="section-subtitle"/>
                 </VBox>
             </HBox>
-            <BarChart fx:id="operationsChart" categoryGap="18" barGap="6" legendVisible="false" VBox.vgrow="ALWAYS" styleClass="modern-chart">
+            <BarChart fx:id="operationsChart" categoryGap="18" barGap="6" legendVisible="false" minHeight="260" VBox.vgrow="ALWAYS" styleClass="modern-chart">
                 <xAxis>
                     <CategoryAxis side="BOTTOM"/>
                 </xAxis>
@@ -92,7 +92,7 @@
                 <Label text="Рекомендации по кассам" styleClass="section-title"/>
                 <Label text="Распределение текущих статусов" styleClass="section-subtitle"/>
             </VBox>
-            <PieChart fx:id="recommendationChart" labelsVisible="false" legendVisible="false" styleClass="modern-pie-chart" VBox.vgrow="ALWAYS"/>
+            <PieChart fx:id="recommendationChart" labelsVisible="false" legendVisible="true" minHeight="310" prefHeight="310" styleClass="modern-pie-chart" VBox.vgrow="ALWAYS"/>
         </VBox>
     </HBox>
 

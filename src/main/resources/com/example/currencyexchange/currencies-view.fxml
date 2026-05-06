@@ -38,7 +38,7 @@
         </VBox>
     </HBox>
 
-    <VBox styleClass="section-card" spacing="0" VBox.vgrow="ALWAYS">
+    <VBox styleClass="section-card" VBox.vgrow="ALWAYS">
         <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
             <Button text="＋ Добавить" onAction="#addCurrency" styleClass="primary-button"/>
             <Button text="✎ Изменить" onAction="#updateCurrency" styleClass="secondary-button"/>
@@ -47,9 +47,8 @@
             <Region HBox.hgrow="ALWAYS"/>
             <StackPane prefWidth="320">
                 <TextField fx:id="searchField" promptText="Поиск по коду или названию валюты" onAction="#searchCurrencies" prefWidth="320" styleClass="search-field modern-search-field"/>
-                <Button text="×" onAction="#clearSearch" focusTraversable="false" StackPane.alignment="CENTER_RIGHT" styleClass="clear-button"/>
+                <Button fx:id="clearSearchButton" text="×" onAction="#clearSearch" visible="false" managed="false" focusTraversable="false" StackPane.alignment="CENTER_RIGHT" styleClass="clear-button"/>
             </StackPane>
-            <Button text="Поиск" onAction="#searchCurrencies" styleClass="primary-button"/>
         </HBox>
 
         <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS" styleClass="content-scroll">

@@ -9,6 +9,7 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <VBox spacing="18" styleClass="page" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
@@ -43,11 +44,12 @@
             <Button text="✎ Изменить" onAction="#updateCashDesk" styleClass="secondary-button"/>
             <Button text="🗑 Удалить" onAction="#deleteCashDesk" styleClass="danger-button"/>
             <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
-            <Button text="⟲ Сбросить" onAction="#clearFilters" styleClass="secondary-button"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <TextField fx:id="searchField" promptText="Поиск по названию или адресу" prefWidth="250" styleClass="search-field modern-search-field"/>
+            <StackPane prefWidth="250">
+                <TextField fx:id="searchField" promptText="Поиск по названию или адресу" prefWidth="250" styleClass="search-field modern-search-field"/>
+                <Button fx:id="clearSearchButton" text="×" onAction="#clearSearch" visible="false" managed="false" focusTraversable="false" StackPane.alignment="CENTER_RIGHT" styleClass="clear-button"/>
+            </StackPane>
             <ComboBox fx:id="filterStatusBox" prefWidth="145" promptText="Статус"/>
-            <Button text="Поиск" onAction="#searchAndFilter" styleClass="primary-button"/>
         </HBox>
         <TableView fx:id="cashDeskTable" VBox.vgrow="ALWAYS" styleClass="modern-table">
             <columns>

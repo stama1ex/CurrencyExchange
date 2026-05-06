@@ -18,6 +18,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public class DashboardController {
     @FXML
@@ -44,7 +47,7 @@ public class DashboardController {
             operationsChart.setAnimated(false);
         }
         if (recommendationChart != null) {
-            recommendationChart.setLegendVisible(false);
+            recommendationChart.setLegendVisible(true);
             recommendationChart.setLabelsVisible(false);
             recommendationChart.setAnimated(false);
         }
@@ -80,19 +83,31 @@ public class DashboardController {
             return;
         }
 
+        operationsChart.setTitle(null);
         XYChart.Series<String, Number> series = new XYChart.Series<>();
-        String sql = "SELECT operation_date::date AS d, COUNT(*) AS total " +
-                "FROM exchange_operations " +
-                "WHERE operation_date >= CURRENT_DATE - INTERVAL '6 day' " +
-                "GROUP BY d ORDER BY d";
+        String sql = "WITH bounds AS ( " +
+                "SELECT COALESCE(MAX(operation_date), CURRENT_DATE)::date AS end_date FROM exchange_operations " +
+                "), days AS ( " +
+                "SELECT generate_series(end_date - INTERVAL '6 day', end_date, INTERVAL '1 day')::date AS d FROM bounds " +
+                ") " +
+                "SELECT days.d, COUNT(eo.operation_id) AS total " +
+                "FROM days " +
+                "LEFT JOIN exchange_operations eo ON eo.operation_date = days.d " +
+                "GROUP BY days.d ORDER BY days.d";
 
         try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
+            int totalOperations = 0;
             while (rs.next()) {
                 String label = rs.getDate("d").toLocalDate().format(SHORT_DATE);
-                series.getData().add(new XYChart.Data<>(label, rs.getInt("total")));
+                int total = rs.getInt("total");
+                totalOperations += total;
+                series.getData().add(new XYChart.Data<>(label, total));
             }
-        } catch (SQLException ignored) {
-            // Dashboard is informative only.
+            if (totalOperations == 0) {
+                operationsChart.setTitle("Нет операций для отображения");
+            }
+        } catch (SQLException e) {
+            operationsChart.setTitle("Не удалось загрузить динамику операций");
         }
 
         operationsChart.getData().setAll(series);
@@ -104,18 +119,82 @@ public class DashboardController {
         }
 
         recommendationChart.getData().clear();
-        String sql = "SELECT COALESCE(recommendation, 'Без статуса') AS recommendation, COUNT(*) AS total " +
-                "FROM cash_desk_status GROUP BY recommendation ORDER BY total DESC";
+        recommendationChart.setTitle(null);
+        String sql = "SELECT COALESCE(NULLIF(TRIM(recommendation), ''), 'Без статуса') AS recommendation, COUNT(*) AS total " +
+                "FROM cash_desk_status GROUP BY 1 ORDER BY total DESC";
 
+        try {
+            populateRecommendationChart(conn, sql);
+        } catch (SQLException e) {
+            recommendationChart.getData().clear();
+            try {
+                populateRecommendationChart(conn, fallbackRecommendationSql());
+            } catch (SQLException fallbackException) {
+                recommendationChart.getData().clear();
+                recommendationChart.setTitle("Не удалось загрузить рекомендации");
+            }
+        }
+    }
+
+    private void populateRecommendationChart(Connection conn, String sql) throws SQLException {
+        int totalDesks = 0;
+        List<RecommendationSlice> slices = new ArrayList<>();
         try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
             while (rs.next()) {
-                recommendationChart.getData().add(
-                        new PieChart.Data(rs.getString("recommendation"), rs.getInt("total"))
-                );
+                String recommendation = rs.getString("recommendation");
+                int total = rs.getInt("total");
+                totalDesks += total;
+                slices.add(new RecommendationSlice(recommendation, total));
             }
-        } catch (SQLException ignored) {
-            // View might not exist yet.
         }
+        slices.sort(Comparator.comparingInt(slice -> recommendationPriority(slice.recommendation())));
+        for (RecommendationSlice slice : slices) {
+            recommendationChart.getData().add(
+                    new PieChart.Data(slice.recommendation() + " (" + slice.total() + ")", slice.total())
+            );
+        }
+        if (totalDesks == 0) {
+            recommendationChart.setTitle("Нет касс для отображения");
+        }
+    }
+
+    private int recommendationPriority(String recommendation) {
+        if (recommendation == null) {
+            return 4;
+        }
+        String value = recommendation.toLowerCase();
+        if (value.contains("инкасс")) {
+            return 1;
+        }
+        if (value.contains("пополн")) {
+            return 2;
+        }
+        if (value.contains("норма")) {
+            return 3;
+        }
+        return 4;
+    }
+
+    private record RecommendationSlice(String recommendation, int total) {
+    }
+
+    private String fallbackRecommendationSql() {
+        return "SELECT recommendation, COUNT(*) AS total " +
+                "FROM ( " +
+                "SELECT CASE " +
+                "WHEN total_balance_mdl > max_limit_mdl THEN 'Нужна инкассация' " +
+                "WHEN total_balance_mdl < min_limit_mdl THEN 'Нужно пополнение' " +
+                "ELSE 'Норма' END AS recommendation " +
+                "FROM ( " +
+                "SELECT cd.min_limit_mdl, cd.max_limit_mdl, ROUND( " +
+                "cd.balance_mdl + " +
+                "cd.balance_ron * COALESCE((SELECT er.sell_rate_mdl FROM exchange_rates er WHERE er.currency_code = 'RON' ORDER BY er.rate_date DESC, er.rate_id DESC LIMIT 1), 0) + " +
+                "cd.balance_eur * COALESCE((SELECT er.sell_rate_mdl FROM exchange_rates er WHERE er.currency_code = 'EUR' ORDER BY er.rate_date DESC, er.rate_id DESC LIMIT 1), 0) + " +
+                "cd.balance_usd * COALESCE((SELECT er.sell_rate_mdl FROM exchange_rates er WHERE er.currency_code = 'USD' ORDER BY er.rate_date DESC, er.rate_id DESC LIMIT 1), 0), 2) AS total_balance_mdl " +
+                "FROM cash_desks cd " +
+                ") balances " +
+                ") recommendations " +
+                "GROUP BY recommendation ORDER BY total DESC";
     }
 
     private void loadAttentionCards(Connection conn) {

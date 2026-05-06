@@ -5,12 +5,14 @@ import com.example.currencyexchange.enums.CashDeskStatus;
 import com.example.currencyexchange.model.CashDesk;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
+import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
@@ -45,6 +47,8 @@ public class CashDeskController {
 
     @FXML
     private TextField searchField;
+    @FXML
+    private Button clearSearchButton;
     @FXML
     private ComboBox<CashDeskStatus> filterStatusBox;
 
@@ -83,9 +87,12 @@ public class CashDeskController {
         filterStatusBox.getItems().add(null);
         filterStatusBox.getItems().addAll(CashDeskStatus.values());
         filterStatusBox.valueProperty().addListener((obs, oldVal, newVal) -> searchAndFilter());
+        clearSearchButton.visibleProperty().bind(Bindings.isNotEmpty(searchField.textProperty()));
+        clearSearchButton.managedProperty().bind(clearSearchButton.visibleProperty());
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> searchAndFilter());
 
         cashDeskTable.setItems(data);
-        refreshTable();
+        searchAndFilter();
     }
 
     @FXML
@@ -254,10 +261,8 @@ public class CashDeskController {
     }
 
     @FXML
-    private void clearFilters() {
+    private void clearSearch() {
         searchField.clear();
-        filterStatusBox.setValue(null);
-        refreshTable();
     }
 
     private double parseNotNegative(String value, String message) {

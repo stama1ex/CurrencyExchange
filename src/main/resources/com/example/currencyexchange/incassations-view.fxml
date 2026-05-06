@@ -42,7 +42,6 @@
             <Button text="✎ Изменить" onAction="#updateIncassation" styleClass="secondary-button"/>
             <Button text="🗑 Удалить" onAction="#deleteIncassation" styleClass="danger-button"/>
             <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
-            <Button text="⟲ Сбросить" onAction="#clearFilter" styleClass="secondary-button"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Label text="Статус" styleClass="filter-label"/>
             <ComboBox fx:id="filterStatusBox" prefWidth="180"/>
