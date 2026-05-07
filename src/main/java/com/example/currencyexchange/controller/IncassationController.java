@@ -33,17 +33,24 @@ import org.controlsfx.validation.ValidationSupport;
 import org.controlsfx.validation.Validator;
 
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class IncassationController {
     private static final String ALL_FILTER = "Все";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     @FXML
     private TableView<Incassation> incassationTable;
@@ -52,7 +59,7 @@ public class IncassationController {
     @FXML
     private TableColumn<Incassation, Integer> cashDeskIdColumn;
     @FXML
-    private TableColumn<Incassation, java.time.LocalDate> dateColumn;
+    private TableColumn<Incassation, LocalDateTime> dateColumn;
     @FXML
     private TableColumn<Incassation, String> currencyCodeColumn;
     @FXML
@@ -75,6 +82,13 @@ public class IncassationController {
         idColumn.setVisible(false);
         cashDeskIdColumn.setCellValueFactory(new PropertyValueFactory<>("cashDeskName"));
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("incassationDate"));
+        dateColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(LocalDateTime dateTime, boolean empty) {
+                super.updateItem(dateTime, empty);
+                setText(empty || dateTime == null ? null : dateTime.format(DATE_TIME_FORMATTER));
+            }
+        });
         currencyCodeColumn.setCellValueFactory(new PropertyValueFactory<>("currencyName"));
         amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
         typeColumn.setCellValueFactory(new PropertyValueFactory<>("operationType"));
@@ -144,8 +158,8 @@ public class IncassationController {
         IncassationForm form = formResult.get();
 
         try {
-            if (!ValidationService.isValidDate(form.date())) {
-                AlertUtil.warning("Валидация", "Выберите дату.");
+            if (!ValidationService.isValidDateTime(form.dateTime())) {
+                AlertUtil.warning("Валидация", "Выберите дату и время.");
                 return;
             }
             if (form.cashDesk() == null || form.currency() == null) {
@@ -166,7 +180,7 @@ public class IncassationController {
                 try {
                     try (PreparedStatement statement = connection.prepareStatement(sql)) {
                         statement.setInt(1, cashDeskId);
-                        statement.setDate(2, Date.valueOf(form.date()));
+                        statement.setTimestamp(2, Timestamp.valueOf(form.dateTime()));
                         statement.setString(3, currencyCode);
                         statement.setString(4, form.type().getDbValue());
                         statement.setDouble(5, amount);
@@ -208,8 +222,8 @@ public class IncassationController {
         IncassationForm form = formResult.get();
 
         try {
-            if (!ValidationService.isValidDate(form.date())) {
-                AlertUtil.warning("Валидация", "Выберите дату.");
+            if (!ValidationService.isValidDateTime(form.dateTime())) {
+                AlertUtil.warning("Валидация", "Выберите дату и время.");
                 return;
             }
             if (form.cashDesk() == null || form.currency() == null) {
@@ -235,7 +249,7 @@ public class IncassationController {
                     String sql = "UPDATE incassations SET cash_desk_id=?, incassation_date=?, currency_code=?, operation_type=?, amount=?, status=?, note=? WHERE incassation_id=?";
                     try (PreparedStatement statement = connection.prepareStatement(sql)) {
                         statement.setInt(1, cashDeskId);
-                        statement.setDate(2, Date.valueOf(form.date()));
+                        statement.setTimestamp(2, Timestamp.valueOf(form.dateTime()));
                         statement.setString(3, currencyCode);
                         statement.setString(4, form.type().getDbValue());
                         statement.setDouble(5, amount);
@@ -308,7 +322,7 @@ public class IncassationController {
                         resultSet.getInt("incassation_id"),
                         resultSet.getInt("cash_desk_id"),
                         resultSet.getString("cash_desk_name"),
-                        resultSet.getDate("incassation_date").toLocalDate(),
+                        resultSet.getTimestamp("incassation_date").toLocalDateTime(),
                         resultSet.getString("currency_code"),
                         resultSet.getString("currency_name"),
                         resultSet.getString("operation_type"),
@@ -343,7 +357,7 @@ public class IncassationController {
                             resultSet.getInt("incassation_id"),
                             resultSet.getInt("cash_desk_id"),
                             resultSet.getString("cash_desk_name"),
-                            resultSet.getDate("incassation_date").toLocalDate(),
+                            resultSet.getTimestamp("incassation_date").toLocalDateTime(),
                             resultSet.getString("currency_code"),
                             resultSet.getString("currency_name"),
                             resultSet.getString("operation_type"),
@@ -451,6 +465,40 @@ public class IncassationController {
         }
     }
 
+    private boolean isValidTime(String value) {
+        try {
+            parseTime(value);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private LocalTime parseTime(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Время должно быть в формате HH:mm.");
+        }
+        try {
+            return LocalTime.parse(value.trim(), TIME_FORMATTER);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Время должно быть в формате HH:mm.");
+        }
+    }
+
+    private LocalDateTime combineDateAndTime(LocalDate date, String time) {
+        if (date == null) {
+            return null;
+        }
+        return date.atTime(parseTime(time)).truncatedTo(ChronoUnit.MINUTES);
+    }
+
+    private String initialTimeText(LocalDateTime dateTime) {
+        LocalTime time = dateTime == null
+                ? LocalTime.now().truncatedTo(ChronoUnit.MINUTES)
+                : dateTime.toLocalTime().truncatedTo(ChronoUnit.MINUTES);
+        return time.format(TIME_FORMATTER);
+    }
+
     private Optional<IncassationForm> showIncassationDialog(Incassation incassation) {
         Dialog<ButtonType> dialog = new Dialog<>();
         ModalDialogUtil.configureFormDialog(
@@ -470,7 +518,15 @@ public class IncassationController {
 
         SearchableComboBox<CashDesk> cashDeskInput = new SearchableComboBox<>();
         cashDeskInput.getItems().setAll(loadCashDesks());
-        DatePicker dateInput = new DatePicker(incassation == null ? LocalDate.now() : incassation.getIncassationDate());
+        DatePicker dateInput = new DatePicker(incassation == null ? LocalDate.now() : incassation.getIncassationDate().toLocalDate());
+        boolean isEditing = incassation != null;
+        TextField timeInput = new TextField(initialTimeText(incassation == null ? null : incassation.getIncassationDate()));
+        timeInput.setPromptText("HH:mm");
+        Label timeLabel = new Label("Время:");
+        timeInput.setVisible(isEditing);
+        timeInput.setManaged(isEditing);
+        timeLabel.setVisible(isEditing);
+        timeLabel.setManaged(isEditing);
         SearchableComboBox<Currency> currencyInput = new SearchableComboBox<>();
         currencyInput.getItems().setAll(loadCurrencies());
         TextField amountInput = new TextField(incassation == null ? "" : String.valueOf(incassation.getAmount()));
@@ -497,16 +553,18 @@ public class IncassationController {
         grid.add(cashDeskInput, 1, 0);
         grid.add(new Label("Дата:"), 0, 1);
         grid.add(dateInput, 1, 1);
-        grid.add(new Label("Валюта:"), 0, 2);
-        grid.add(currencyInput, 1, 2);
-        grid.add(new Label("Тип:"), 0, 3);
-        grid.add(typeInput, 1, 3);
-        grid.add(new Label("Сумма:"), 0, 4);
-        grid.add(amountInput, 1, 4);
-        grid.add(new Label("Статус:"), 0, 5);
-        grid.add(statusInput, 1, 5);
-        grid.add(new Label("Примечание:"), 0, 6);
-        grid.add(noteInput, 1, 6);
+        grid.add(timeLabel, 0, 2);
+        grid.add(timeInput, 1, 2);
+        grid.add(new Label("Валюта:"), 0, 3);
+        grid.add(currencyInput, 1, 3);
+        grid.add(new Label("Тип:"), 0, 4);
+        grid.add(typeInput, 1, 4);
+        grid.add(new Label("Сумма:"), 0, 5);
+        grid.add(amountInput, 1, 5);
+        grid.add(new Label("Статус:"), 0, 6);
+        grid.add(statusInput, 1, 6);
+        grid.add(new Label("Примечание:"), 0, 7);
+        grid.add(noteInput, 1, 7);
 
         dialog.getDialogPane().setContent(grid);
         ValidationSupport validationSupport = new ValidationSupport();
@@ -518,6 +576,13 @@ public class IncassationController {
                 "Выберите дату.",
                 Severity.ERROR
         ));
+        if (isEditing) {
+            validationSupport.registerValidator(timeInput, Validator.createPredicateValidator(
+                    this::isValidTime,
+                    "Введите время в формате HH:mm.",
+                    Severity.ERROR
+            ));
+        }
         validationSupport.registerValidator(currencyInput, Validator.createEmptyValidator("Выберите валюту."));
         validationSupport.registerValidator(typeInput, Validator.createEmptyValidator("Выберите тип операции."));
         validationSupport.registerValidator(amountInput, Validator.createPredicateValidator(
@@ -534,9 +599,13 @@ public class IncassationController {
             return Optional.empty();
         }
 
+        LocalDateTime dateTime = isEditing
+                ? combineDateAndTime(dateInput.getValue(), timeInput.getText())
+                : dateInput.getValue().atTime(LocalTime.now().truncatedTo(ChronoUnit.MINUTES));
+        
         return Optional.of(new IncassationForm(
                 cashDeskInput.getValue(),
-                dateInput.getValue(),
+                dateTime,
                 currencyInput.getValue(),
                 typeInput.getValue(),
                 amountInput.getText().trim(),
@@ -551,7 +620,7 @@ public class IncassationController {
 
     private record IncassationForm(
             CashDesk cashDesk,
-            LocalDate date,
+            LocalDateTime dateTime,
             Currency currency,
             IncassationType type,
             String amount,

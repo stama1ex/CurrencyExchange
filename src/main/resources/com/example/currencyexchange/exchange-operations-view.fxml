@@ -17,7 +17,7 @@
     <HBox alignment="CENTER_LEFT" styleClass="page-header">
         <VBox spacing="5">
             <Label text="Операции обмена" styleClass="page-title"/>
-            <Label text="История сделок с мгновенной фильтрацией по дате" styleClass="page-subtitle"/>
+            <Label text="История сделок с точным временем и мгновенной фильтрацией по дате" styleClass="page-subtitle"/>
         </VBox>
         <Region HBox.hgrow="ALWAYS"/>
     </HBox>
@@ -66,7 +66,7 @@
                 <TableColumn fx:id="cashDeskIdColumn" text="Касса" prefWidth="200"/>
                 <TableColumn fx:id="currencyFromColumn" text="Из валюты" prefWidth="120"/>
                 <TableColumn fx:id="currencyToColumn" text="В валюту" prefWidth="120"/>
-                <TableColumn fx:id="dateColumn" text="Дата" prefWidth="130"/>
+                <TableColumn fx:id="dateColumn" text="Дата и время" prefWidth="165"/>
                 <TableColumn fx:id="amountFromColumn" text="Сумма из" prefWidth="130"/>
                 <TableColumn fx:id="rateColumn" text="Курс" prefWidth="100"/>
                 <TableColumn fx:id="amountToColumn" text="Сумма в" prefWidth="130"/>

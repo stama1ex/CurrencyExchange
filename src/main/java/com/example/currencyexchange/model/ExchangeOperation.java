@@ -1,12 +1,12 @@
 package com.example.currencyexchange.model;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class ExchangeOperation {
     private int id;
     private int cashDeskId;
     private String cashDeskName;
-    private LocalDate operationDate;
+    private LocalDateTime operationDate;
     private String currencyFrom;
     private String currencyFromName;
     private String currencyTo;
@@ -18,7 +18,7 @@ public class ExchangeOperation {
     public ExchangeOperation() {
     }
 
-    public ExchangeOperation(int id, int cashDeskId, LocalDate operationDate, String currencyFrom,
+    public ExchangeOperation(int id, int cashDeskId, LocalDateTime operationDate, String currencyFrom,
                              String currencyTo, double amountFrom, double rate, double amountTo) {
         this.id = id;
         this.cashDeskId = cashDeskId;
@@ -30,7 +30,7 @@ public class ExchangeOperation {
         this.amountTo = amountTo;
     }
 
-    public ExchangeOperation(int id, int cashDeskId, String cashDeskName, LocalDate operationDate,
+    public ExchangeOperation(int id, int cashDeskId, String cashDeskName, LocalDateTime operationDate,
                              String currencyFrom, String currencyFromName, String currencyTo, String currencyToName,
                              double amountFrom, double rate, double amountTo) {
         this(id, cashDeskId, operationDate, currencyFrom, currencyTo, amountFrom, rate, amountTo);
@@ -95,11 +95,11 @@ public class ExchangeOperation {
         this.currencyToName = currencyToName;
     }
 
-    public LocalDate getOperationDate() {
+    public LocalDateTime getOperationDate() {
         return operationDate;
     }
 
-    public void setOperationDate(LocalDate operationDate) {
+    public void setOperationDate(LocalDateTime operationDate) {
         this.operationDate = operationDate;
     }
 

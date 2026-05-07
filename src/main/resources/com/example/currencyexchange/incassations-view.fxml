@@ -39,7 +39,7 @@
             <Label text="Операции по кассам" styleClass="mini-stat-title">
                 <graphic><FontIcon iconLiteral="fas-box" iconSize="13" styleClass="app-icon"/></graphic>
             </Label>
-            <Label text="В таблице видно кассу, дату, валюту и тип операции" styleClass="mini-stat-description" wrapText="true"/>
+            <Label text="В таблице видно кассу, дату, время, валюту и тип операции" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
     </HBox>
 
@@ -62,7 +62,7 @@
             <columns>
                 <TableColumn fx:id="idColumn" text="ID" prefWidth="70" visible="false"/>
                 <TableColumn fx:id="cashDeskIdColumn" text="Касса" prefWidth="180"/>
-                <TableColumn fx:id="dateColumn" text="Дата" prefWidth="140"/>
+                <TableColumn fx:id="dateColumn" text="Дата и время" prefWidth="165"/>
                 <TableColumn fx:id="currencyCodeColumn" text="Валюта" prefWidth="190"/>
                 <TableColumn fx:id="amountColumn" text="Сумма" prefWidth="100"/>
                 <TableColumn fx:id="typeColumn" text="Тип" prefWidth="100"/>

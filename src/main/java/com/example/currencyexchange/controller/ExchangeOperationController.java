@@ -18,6 +18,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -31,17 +32,24 @@ import org.controlsfx.validation.Validator;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class ExchangeOperationController {
     private static final String BASE_CURRENCY_CODE = "MDL";
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     @FXML
     private TableView<ExchangeOperation> operationTable;
@@ -54,7 +62,7 @@ public class ExchangeOperationController {
     @FXML
     private TableColumn<ExchangeOperation, String> currencyToColumn;
     @FXML
-    private TableColumn<ExchangeOperation, LocalDate> dateColumn;
+    private TableColumn<ExchangeOperation, LocalDateTime> dateColumn;
     @FXML
     private TableColumn<ExchangeOperation, Double> amountFromColumn;
     @FXML
@@ -75,6 +83,13 @@ public class ExchangeOperationController {
         currencyFromColumn.setCellValueFactory(new PropertyValueFactory<>("currencyFromName"));
         currencyToColumn.setCellValueFactory(new PropertyValueFactory<>("currencyToName"));
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("operationDate"));
+        dateColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(LocalDateTime dateTime, boolean empty) {
+                super.updateItem(dateTime, empty);
+                setText(empty || dateTime == null ? null : dateTime.format(DATE_TIME_FORMATTER));
+            }
+        });
         amountFromColumn.setCellValueFactory(new PropertyValueFactory<>("amountFrom"));
         rateColumn.setCellValueFactory(new PropertyValueFactory<>("rate"));
         amountToColumn.setCellValueFactory(new PropertyValueFactory<>("amountTo"));
@@ -110,8 +125,8 @@ public class ExchangeOperationController {
                 AlertUtil.warning("Валидация", "Валюты обмена должны отличаться.");
                 return;
             }
-            if (!ValidationService.isValidDate(form.operationDate())) {
-                AlertUtil.warning("Валидация", "Выберите дату операции.");
+            if (!ValidationService.isValidDateTime(form.operationDateTime())) {
+                AlertUtil.warning("Валидация", "Выберите дату и время операции.");
                 return;
             }
 
@@ -125,7 +140,7 @@ public class ExchangeOperationController {
                 try {
                     try (PreparedStatement statement = connection.prepareStatement(sql)) {
                         statement.setInt(1, cashDeskId);
-                        statement.setDate(2, Date.valueOf(form.operationDate()));
+                        statement.setTimestamp(2, Timestamp.valueOf(form.operationDateTime()));
                         statement.setString(3, currencyFrom);
                         statement.setString(4, currencyTo);
                         statement.setDouble(5, amountFrom);
@@ -178,8 +193,8 @@ public class ExchangeOperationController {
                 AlertUtil.warning("Валидация", "Валюты обмена должны отличаться.");
                 return;
             }
-            if (!ValidationService.isValidDate(form.operationDate())) {
-                AlertUtil.warning("Валидация", "Выберите дату операции.");
+            if (!ValidationService.isValidDateTime(form.operationDateTime())) {
+                AlertUtil.warning("Валидация", "Выберите дату и время операции.");
                 return;
             }
             double amountFrom = parsePositive(form.amountFrom(), "Сумма исходной валюты должна быть > 0.");
@@ -197,7 +212,7 @@ public class ExchangeOperationController {
                     String sql = "UPDATE exchange_operations SET cash_desk_id=?, operation_date=?, currency_from=?, currency_to=?, amount_from=?, rate=?, amount_to=? WHERE operation_id=?";
                     try (PreparedStatement statement = connection.prepareStatement(sql)) {
                         statement.setInt(1, cashDeskId);
-                        statement.setDate(2, Date.valueOf(form.operationDate()));
+                        statement.setTimestamp(2, Timestamp.valueOf(form.operationDateTime()));
                         statement.setString(3, currencyFrom);
                         statement.setString(4, currencyTo);
                         statement.setDouble(5, amountFrom);
@@ -274,7 +289,7 @@ public class ExchangeOperationController {
                         resultSet.getInt("operation_id"),
                         resultSet.getInt("cash_desk_id"),
                         resultSet.getString("cash_desk_name"),
-                        resultSet.getDate("operation_date").toLocalDate(),
+                        resultSet.getTimestamp("operation_date").toLocalDateTime(),
                         resultSet.getString("currency_from"),
                         resultSet.getString("currency_from_name"),
                         resultSet.getString("currency_to"),
@@ -304,11 +319,14 @@ public class ExchangeOperationController {
                         "FROM exchange_operations eo " +
                         "JOIN cash_desks cd ON cd.cash_desk_id = eo.cash_desk_id " +
                         "JOIN currencies cf ON cf.currency_code = eo.currency_from " +
-                        "JOIN currencies ct ON ct.currency_code = eo.currency_to WHERE eo.operation_date=? ORDER BY eo.operation_date DESC, eo.operation_id DESC";
+                        "JOIN currencies ct ON ct.currency_code = eo.currency_to " +
+                        "WHERE eo.operation_date >= ? AND eo.operation_date < ? " +
+                        "ORDER BY eo.operation_date DESC, eo.operation_id DESC";
 
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setDate(1, Date.valueOf(selectedDate));
+            statement.setTimestamp(1, Timestamp.valueOf(selectedDate.atStartOfDay()));
+            statement.setTimestamp(2, Timestamp.valueOf(selectedDate.plusDays(1).atStartOfDay()));
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -316,7 +334,7 @@ public class ExchangeOperationController {
                             resultSet.getInt("operation_id"),
                             resultSet.getInt("cash_desk_id"),
                                 resultSet.getString("cash_desk_name"),
-                            resultSet.getDate("operation_date").toLocalDate(),
+                            resultSet.getTimestamp("operation_date").toLocalDateTime(),
                             resultSet.getString("currency_from"),
                                 resultSet.getString("currency_from_name"),
                             resultSet.getString("currency_to"),
@@ -404,6 +422,40 @@ public class ExchangeOperationController {
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    private boolean isValidTime(String value) {
+        try {
+            parseTime(value);
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private LocalTime parseTime(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Время должно быть в формате HH:mm.");
+        }
+        try {
+            return LocalTime.parse(value.trim(), TIME_FORMATTER);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Время должно быть в формате HH:mm.");
+        }
+    }
+
+    private LocalDateTime combineDateAndTime(LocalDate date, String time) {
+        if (date == null) {
+            return null;
+        }
+        return date.atTime(parseTime(time)).truncatedTo(ChronoUnit.MINUTES);
+    }
+
+    private String initialTimeText(LocalDateTime dateTime) {
+        LocalTime time = dateTime == null
+                ? LocalTime.now().truncatedTo(ChronoUnit.MINUTES)
+                : dateTime.toLocalTime().truncatedTo(ChronoUnit.MINUTES);
+        return time.format(TIME_FORMATTER);
     }
 
     private void recalculateAmountTo(TextField amountFromInput, TextField rateInput, TextField amountToInput) {
@@ -523,7 +575,15 @@ public class ExchangeOperationController {
 
         SearchableComboBox<CashDesk> cashDeskInput = new SearchableComboBox<>();
         cashDeskInput.getItems().setAll(loadCashDesks());
-        DatePicker dateInput = new DatePicker(operation == null ? LocalDate.now() : operation.getOperationDate());
+        DatePicker dateInput = new DatePicker(operation == null ? LocalDate.now() : operation.getOperationDate().toLocalDate());
+        boolean isEditing = operation != null;
+        TextField timeInput = new TextField(initialTimeText(operation == null ? null : operation.getOperationDate()));
+        timeInput.setPromptText("HH:mm");
+        Label timeLabel = new Label("Время:");
+        timeInput.setVisible(isEditing);
+        timeInput.setManaged(isEditing);
+        timeLabel.setVisible(isEditing);
+        timeLabel.setManaged(isEditing);
         SearchableComboBox<Currency> fromInput = new SearchableComboBox<>();
         fromInput.getItems().setAll(loadCurrencies());
         SearchableComboBox<Currency> toInput = new SearchableComboBox<>();
@@ -577,18 +637,20 @@ public class ExchangeOperationController {
         grid.add(cashDeskInput, 1, 0);
         grid.add(new Label("Дата:"), 0, 1);
         grid.add(dateInput, 1, 1);
-        grid.add(new Label("Из валюты:"), 0, 2);
-        grid.add(fromInput, 1, 2);
-        grid.add(new Label("В валюту:"), 0, 3);
-        grid.add(toInput, 1, 3);
-        grid.add(new Label("Сумма из:"), 0, 4);
-        grid.add(amountFromInput, 1, 4);
-        grid.add(new Label("Режим курса:"), 0, 5);
-        grid.add(latestRateInput, 1, 5);
-        grid.add(new Label("Курс:"), 0, 6);
-        grid.add(rateInput, 1, 6);
-        grid.add(new Label("Сумма в:"), 0, 7);
-        grid.add(amountToInput, 1, 7);
+        grid.add(timeLabel, 0, 2);
+        grid.add(timeInput, 1, 2);
+        grid.add(new Label("Из валюты:"), 0, 3);
+        grid.add(fromInput, 1, 3);
+        grid.add(new Label("В валюту:"), 0, 4);
+        grid.add(toInput, 1, 4);
+        grid.add(new Label("Сумма из:"), 0, 5);
+        grid.add(amountFromInput, 1, 5);
+        grid.add(new Label("Режим курса:"), 0, 6);
+        grid.add(latestRateInput, 1, 6);
+        grid.add(new Label("Курс:"), 0, 7);
+        grid.add(rateInput, 1, 7);
+        grid.add(new Label("Сумма в:"), 0, 8);
+        grid.add(amountToInput, 1, 8);
 
         dialog.getDialogPane().setContent(grid);
         ValidationSupport validationSupport = new ValidationSupport();
@@ -600,6 +662,13 @@ public class ExchangeOperationController {
                 "Выберите дату операции.",
                 Severity.ERROR
         ));
+        if (isEditing) {
+            validationSupport.registerValidator(timeInput, Validator.createPredicateValidator(
+                    this::isValidTime,
+                    "Введите время в формате HH:mm.",
+                    Severity.ERROR
+            ));
+        }
         validationSupport.registerValidator(fromInput, Validator.createEmptyValidator("Выберите исходную валюту."));
         validationSupport.registerValidator(toInput, Validator.createEmptyValidator("Выберите целевую валюту."));
         validationSupport.registerValidator(amountFromInput, Validator.createPredicateValidator(
@@ -625,9 +694,13 @@ public class ExchangeOperationController {
             return Optional.empty();
         }
 
+        LocalDateTime dateTime = isEditing
+                ? combineDateAndTime(dateInput.getValue(), timeInput.getText())
+                : dateInput.getValue().atTime(LocalTime.now().truncatedTo(ChronoUnit.MINUTES));
+        
         return Optional.of(new OperationForm(
                 cashDeskInput.getValue(),
-                dateInput.getValue(),
+                dateTime,
                 fromInput.getValue(),
                 toInput.getValue(),
                 amountFromInput.getText().trim(),
@@ -681,7 +754,7 @@ public class ExchangeOperationController {
 
     private record OperationForm(
             CashDesk cashDesk,
-            LocalDate operationDate,
+            LocalDateTime operationDateTime,
             Currency currencyFrom,
             Currency currencyTo,
             String amountFrom,

@@ -1,12 +1,12 @@
 package com.example.currencyexchange.model;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class Incassation {
     private int id;
     private int cashDeskId;
     private String cashDeskName;
-    private LocalDate incassationDate;
+    private LocalDateTime incassationDate;
     private String currencyCode;
     private String currencyName;
     private String operationType;
@@ -17,12 +17,12 @@ public class Incassation {
     public Incassation() {
     }
 
-    public Incassation(int id, int cashDeskId, LocalDate incassationDate, String currencyCode,
+    public Incassation(int id, int cashDeskId, LocalDateTime incassationDate, String currencyCode,
                        String operationType, double amount, String status) {
         this(id, cashDeskId, incassationDate, currencyCode, operationType, amount, status, "");
     }
 
-    public Incassation(int id, int cashDeskId, LocalDate incassationDate, String currencyCode,
+    public Incassation(int id, int cashDeskId, LocalDateTime incassationDate, String currencyCode,
                        String operationType, double amount, String status, String note) {
         this.id = id;
         this.cashDeskId = cashDeskId;
@@ -34,12 +34,12 @@ public class Incassation {
         this.note = note;
     }
 
-    public Incassation(int id, int cashDeskId, String cashDeskName, LocalDate incassationDate, String currencyCode,
+    public Incassation(int id, int cashDeskId, String cashDeskName, LocalDateTime incassationDate, String currencyCode,
                        String currencyName, String operationType, double amount, String status) {
         this(id, cashDeskId, cashDeskName, incassationDate, currencyCode, currencyName, operationType, amount, status, "");
     }
 
-    public Incassation(int id, int cashDeskId, String cashDeskName, LocalDate incassationDate, String currencyCode,
+    public Incassation(int id, int cashDeskId, String cashDeskName, LocalDateTime incassationDate, String currencyCode,
                        String currencyName, String operationType, double amount, String status, String note) {
         this(id, cashDeskId, incassationDate, currencyCode, operationType, amount, status, note);
         this.cashDeskName = cashDeskName;
@@ -70,11 +70,11 @@ public class Incassation {
         this.cashDeskName = cashDeskName;
     }
 
-    public LocalDate getIncassationDate() {
+    public LocalDateTime getIncassationDate() {
         return incassationDate;
     }
 
-    public void setIncassationDate(LocalDate incassationDate) {
+    public void setIncassationDate(LocalDateTime incassationDate) {
         this.incassationDate = incassationDate;
     }
 

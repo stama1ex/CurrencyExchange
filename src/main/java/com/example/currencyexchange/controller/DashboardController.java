@@ -139,7 +139,7 @@ public class DashboardController {
                 ") " +
                 "SELECT days.d, COUNT(eo.operation_id) AS total " +
                 "FROM days " +
-                "LEFT JOIN exchange_operations eo ON eo.operation_date = days.d " +
+                "LEFT JOIN exchange_operations eo ON eo.operation_date::date = days.d " +
                 "GROUP BY days.d ORDER BY days.d";
 
         try (PreparedStatement st = conn.prepareStatement(sql)) {
