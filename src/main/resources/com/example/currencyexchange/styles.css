@@ -431,7 +431,8 @@
   -fx-pref-columns: 4;
 }
 
-.currency-card {
+.currency-card,
+.cash-desk-card {
   -fx-background-color: linear-gradient(to bottom right, #ffffff, #f8fbff);
   -fx-background-radius: 18px;
   -fx-border-color: #e2e8f0;
@@ -440,17 +441,20 @@
   -fx-cursor: hand;
 }
 
-.currency-card:hover {
+.currency-card:hover,
+.cash-desk-card:hover {
   -fx-border-color: #93c5fd;
   -fx-effect: dropshadow(gaussian, rgba(37, 99, 235, 0.12), 20, 0.18, 0, 8);
 }
 
-.currency-card.selected {
+.currency-card.selected,
+.cash-desk-card.selected {
   -fx-border-color: #3b82f6;
   -fx-background-color: linear-gradient(to bottom right, #eff6ff, #ffffff);
 }
 
-.currency-code-badge {
+.currency-code-badge,
+.cash-desk-id-badge {
   -fx-background-color: linear-gradient(to right, #2563eb, #4f46e5);
   -fx-text-fill: white;
   -fx-background-radius: 12px;
@@ -468,6 +472,29 @@
 .currency-card-subtitle {
   -fx-text-fill: #64748b;
   -fx-font-size: 12px;
+}
+
+.cash-desk-address {
+  -fx-text-fill: #64748b;
+  -fx-font-size: 12px;
+}
+
+.cash-desk-limit-box {
+  -fx-background-color: #f8fafc;
+  -fx-background-radius: 14px;
+  -fx-padding: 10 12 10 12;
+}
+
+.cash-desk-limit-title {
+  -fx-text-fill: #64748b;
+  -fx-font-size: 11px;
+  -fx-font-weight: 700;
+}
+
+.cash-desk-limit-value {
+  -fx-text-fill: #0f172a;
+  -fx-font-size: 13px;
+  -fx-font-weight: 800;
 }
 
 .soft-chip {
