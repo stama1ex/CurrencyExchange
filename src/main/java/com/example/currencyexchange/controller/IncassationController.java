@@ -12,6 +12,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
@@ -76,10 +77,13 @@ public class IncassationController {
         typeColumn.setCellValueFactory(new PropertyValueFactory<>("operationType"));
         statusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
         noteColumn.setCellValueFactory(new PropertyValueFactory<>("note"));
+        typeColumn.setStyle("-fx-alignment: CENTER;");
+        statusColumn.setStyle("-fx-alignment: CENTER;");
         typeColumn.setCellFactory(column -> new TableCell<>() {
             @Override
             protected void updateItem(String type, boolean empty) {
                 super.updateItem(type, empty);
+                setAlignment(Pos.CENTER);
                 getStyleClass().removeAll("status-pill", "status-pill-success", "status-pill-warning");
                 if (empty || type == null) {
                     setText(null);
@@ -100,6 +104,7 @@ public class IncassationController {
             @Override
             protected void updateItem(String status, boolean empty) {
                 super.updateItem(status, empty);
+                setAlignment(Pos.CENTER);
                 getStyleClass().removeAll("status-pill", "status-pill-success", "status-pill-danger", "status-pill-neutral");
                 if (empty || status == null) {
                     setText(null);

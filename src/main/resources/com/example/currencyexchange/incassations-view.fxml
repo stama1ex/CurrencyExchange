@@ -49,12 +49,12 @@
         <TableView fx:id="incassationTable" VBox.vgrow="ALWAYS" styleClass="modern-table">
             <columns>
                 <TableColumn fx:id="idColumn" text="ID" prefWidth="70" visible="false"/>
-                <TableColumn fx:id="cashDeskIdColumn" text="Касса" prefWidth="230"/>
+                <TableColumn fx:id="cashDeskIdColumn" text="Касса" prefWidth="180"/>
                 <TableColumn fx:id="dateColumn" text="Дата" prefWidth="140"/>
                 <TableColumn fx:id="currencyCodeColumn" text="Валюта" prefWidth="190"/>
-                <TableColumn fx:id="amountColumn" text="Сумма" prefWidth="150"/>
-                <TableColumn fx:id="typeColumn" text="Тип" prefWidth="160"/>
-                <TableColumn fx:id="statusColumn" text="Статус" prefWidth="160"/>
+                <TableColumn fx:id="amountColumn" text="Сумма" prefWidth="100"/>
+                <TableColumn fx:id="typeColumn" text="Тип" prefWidth="100"/>
+                <TableColumn fx:id="statusColumn" text="Статус" prefWidth="100"/>
                 <TableColumn fx:id="noteColumn" text="Примечание" prefWidth="240"/>
             </columns>
         </TableView>

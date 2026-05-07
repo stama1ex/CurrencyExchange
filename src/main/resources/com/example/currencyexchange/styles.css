@@ -518,6 +518,7 @@
   -fx-padding: 6 10 6 10;
   -fx-font-size: 11px;
   -fx-font-weight: 800;
+  -fx-alignment: CENTER;
 }
 
 .status-pill-success {
