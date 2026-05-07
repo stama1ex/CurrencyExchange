@@ -4,6 +4,7 @@ import com.example.currencyexchange.DatabaseConnection;
 import com.example.currencyexchange.model.Currency;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
+import com.example.currencyexchange.util.CurrencyCodeUtil;
 import com.example.currencyexchange.util.CurrencyFlagUtil;
 import com.example.currencyexchange.util.IconUtil;
 import com.example.currencyexchange.util.ThemeManager;
@@ -257,17 +258,36 @@ public class CurrencyController {
 
         HBox footer = new HBox(8);
         footer.setAlignment(Pos.CENTER_LEFT);
-        Label chip1 = new Label("Доступна");
-        IconUtil.setIcon(chip1, "fas-check-circle", 12);
-        chip1.getStyleClass().add("soft-chip");
-        Label chip2 = new Label("Международная");
-        IconUtil.setIcon(chip2, "fas-globe", 12);
-        chip2.getStyleClass().add("soft-chip");
-        footer.getChildren().addAll(chip1, chip2);
+        footer.getChildren().addAll(createCurrencyTags(currency));
 
         card.getChildren().addAll(top, body, footer);
         card.setOnMouseClicked(event -> selectCurrency(currency));
         return card;
+    }
+
+    private java.util.List<Label> createCurrencyTags(Currency currency) {
+        if (!isKnownCurrencyCode(currency.getCode())) {
+            return java.util.List.of(
+                    createSoftChip("Неизвестная валюта", "fas-question-circle"),
+                    createSoftChip("Недоступна", "fas-ban")
+            );
+        }
+
+        return java.util.List.of(
+                createSoftChip("Доступна", "fas-check-circle"),
+                createSoftChip("Международная", "fas-globe")
+        );
+    }
+
+    private Label createSoftChip(String text, String iconLiteral) {
+        Label chip = new Label(text);
+        IconUtil.setIcon(chip, iconLiteral, 12);
+        chip.getStyleClass().add("soft-chip");
+        return chip;
+    }
+
+    private boolean isKnownCurrencyCode(String code) {
+        return CurrencyCodeUtil.isKnownCurrencyCode(code);
     }
 
     private void selectCurrency(Currency currency) {

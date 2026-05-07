@@ -41,8 +41,8 @@ public final class ThemeManager {
         if (!dialogPane.getStylesheets().contains(stylesheet)) {
             dialogPane.getStylesheets().add(stylesheet);
         }
-        applyThemeClass(dialogPane, isDarkTheme());
-        darkTheme.addListener((obs, wasDark, isDark) -> applyThemeClass(dialogPane, isDark));
+        applyDialogTheme(dialogPane, isDarkTheme());
+        darkTheme.addListener((obs, wasDark, isDark) -> applyDialogTheme(dialogPane, isDark));
     }
 
     private static void applyAppTheme(boolean dark) {
@@ -59,5 +59,12 @@ public final class ThemeManager {
         } else {
             parent.getStyleClass().remove(DARK_THEME_CLASS);
         }
+    }
+
+    private static void applyDialogTheme(DialogPane dialogPane, boolean dark) {
+        applyThemeClass(dialogPane, dark);
+        dialogPane.setStyle(dark
+                ? "-fx-background-color: #070b14; -fx-background: #070b14; -fx-control-inner-background: #0b1220;"
+                : "");
     }
 }

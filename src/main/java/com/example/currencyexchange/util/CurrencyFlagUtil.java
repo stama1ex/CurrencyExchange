@@ -41,7 +41,11 @@ public final class CurrencyFlagUtil {
     }
 
     public static Node createFlag(String currencyCode) {
-        String normalizedCurrency = normalize(currencyCode);
+        String normalizedCurrency = CurrencyCodeUtil.normalize(currencyCode);
+        if (!CurrencyCodeUtil.isKnownCurrencyCode(normalizedCurrency)) {
+            return createUnknownCurrencyIcon();
+        }
+
         String countryCode = countryCodeForCurrency(normalizedCurrency);
 
         StackPane flag = new StackPane();
@@ -85,6 +89,16 @@ public final class CurrencyFlagUtil {
         return flag;
     }
 
+    private static Node createUnknownCurrencyIcon() {
+        StackPane iconBox = new StackPane();
+        iconBox.getStyleClass().addAll("currency-flag", "currency-flag-unknown");
+        iconBox.setMinSize(FLAG_WIDTH, FLAG_HEIGHT);
+        iconBox.setPrefSize(FLAG_WIDTH, FLAG_HEIGHT);
+        iconBox.setMaxSize(FLAG_WIDTH, FLAG_HEIGHT);
+        iconBox.getChildren().add(IconUtil.icon("fas-question", 13));
+        return iconBox;
+    }
+
     private static Image loadFlagImage(String countryCode) {
         String url = "https://flagcdn.com/w80/" + countryCode.toLowerCase(Locale.ROOT) + ".png";
         return new Image(url, FLAG_WIDTH * 2, FLAG_HEIGHT * 2, false, true, true);
@@ -107,7 +121,4 @@ public final class CurrencyFlagUtil {
         return currencyCode.substring(0, 2);
     }
 
-    private static String normalize(String value) {
-        return value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
-    }
 }
