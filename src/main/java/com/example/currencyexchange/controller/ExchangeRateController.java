@@ -7,7 +7,7 @@ import com.example.currencyexchange.service.ExchangeRateAutoUpdateService;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
 import com.example.currencyexchange.util.IconUtil;
-import com.example.currencyexchange.util.ThemeManager;
+import com.example.currencyexchange.util.ModalDialogUtil;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -480,9 +480,11 @@ public class ExchangeRateController {
 
     private Optional<RateForm> showRateDialog(ExchangeRate rate) {
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle(rate == null ? "Добавить курс" : "Изменить курс");
-        dialog.getDialogPane().getStyleClass().add("form-dialog");
-        ThemeManager.applyToDialog(dialog.getDialogPane());
+        ModalDialogUtil.configureFormDialog(
+                dialog,
+                rate == null ? "Добавить курс" : "Изменить курс",
+                "fas-exchange-alt"
+        );
 
         ButtonType saveButton = new ButtonType("Сохранить", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelButton = new ButtonType("Отмена", ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -540,7 +542,7 @@ public class ExchangeRateController {
         Node saveNode = dialog.getDialogPane().lookupButton(saveButton);
         saveNode.disableProperty().bind(validationSupport.invalidProperty());
 
-        Optional<ButtonType> result = dialog.showAndWait();
+        Optional<ButtonType> result = ModalDialogUtil.showAndWait(dialog);
         if (result.isEmpty() || result.get() != saveButton) {
             return Optional.empty();
         }

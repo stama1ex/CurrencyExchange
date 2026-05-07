@@ -6,7 +6,7 @@ import com.example.currencyexchange.model.Currency;
 import com.example.currencyexchange.model.ExchangeOperation;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
-import com.example.currencyexchange.util.ThemeManager;
+import com.example.currencyexchange.util.ModalDialogUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -506,9 +506,11 @@ public class ExchangeOperationController {
 
     private Optional<OperationForm> showOperationDialog(ExchangeOperation operation) {
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle(operation == null ? "Добавить операцию" : "Изменить операцию");
-        dialog.getDialogPane().getStyleClass().add("form-dialog");
-        ThemeManager.applyToDialog(dialog.getDialogPane());
+        ModalDialogUtil.configureFormDialog(
+                dialog,
+                operation == null ? "Добавить операцию" : "Изменить операцию",
+                "fas-random"
+        );
 
         ButtonType saveButton = new ButtonType("Сохранить", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelButton = new ButtonType("Отмена", ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -618,7 +620,7 @@ public class ExchangeOperationController {
         Node saveNode = dialog.getDialogPane().lookupButton(saveButton);
         saveNode.disableProperty().bind(validationSupport.invalidProperty());
 
-        Optional<ButtonType> result = dialog.showAndWait();
+        Optional<ButtonType> result = ModalDialogUtil.showAndWait(dialog);
         if (result.isEmpty() || result.get() != saveButton) {
             return Optional.empty();
         }

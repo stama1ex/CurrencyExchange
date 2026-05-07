@@ -25,6 +25,7 @@
 
     <VBox styleClass="section-card" spacing="0" VBox.vgrow="ALWAYS">
         <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
+            <VBox.margin><Insets bottom="10"/></VBox.margin>
             <Button text="Добавить" onAction="#addRate" styleClass="primary-button">
                 <graphic><FontIcon iconLiteral="fas-plus" iconSize="12" styleClass="app-icon"/></graphic>
             </Button>

@@ -16,6 +16,30 @@
   -fx-background-color: linear-gradient(to bottom, #f8fafc, #eef3fb);
 }
 
+.modal-backdrop {
+  -fx-background-color: rgba(15, 23, 42, 0.34);
+}
+
+.dialog-pane.form-dialog {
+  -fx-background-radius: 0;
+  -fx-border-radius: 0;
+}
+
+.dialog-pane.form-dialog > .header-panel,
+.dialog-pane.form-dialog > .content,
+.dialog-pane.form-dialog > .button-bar {
+  -fx-background-radius: 0;
+}
+
+.dialog-pane.form-dialog .header-panel .label {
+  -fx-font-size: 17px;
+  -fx-font-weight: 700;
+}
+
+.dialog-pane.form-dialog .dialog-title-icon {
+  -fx-icon-color: #2563eb;
+}
+
 .sidebar {
   -fx-background-color: linear-gradient(
     to bottom,
@@ -984,6 +1008,20 @@
   );
 }
 
+.dark-theme .modal-backdrop {
+  -fx-background-color: rgba(2, 6, 23, 0.52);
+}
+
+.dialog-pane.form-dialog.dark-theme,
+.form-dialog.dark-theme {
+  -fx-background-radius: 0;
+  -fx-border-radius: 0;
+}
+
+.dialog-pane.form-dialog.dark-theme .dialog-title-icon {
+  -fx-icon-color: #7dd3fc;
+}
+
 .dark-theme .sidebar {
   -fx-background-color: linear-gradient(
     to bottom,
@@ -1086,6 +1124,11 @@
   -fx-border-color: rgba(148, 163, 184, 0.26);
   -fx-border-radius: 20px;
   -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.18), 18, 0.12, 0, 6);
+}
+
+.form-dialog.dark-theme {
+  -fx-background-radius: 0;
+  -fx-border-radius: 0;
 }
 
 .dark-theme .stat-card {
@@ -1528,8 +1571,8 @@
   -fx-text-base-color: #e5edf8;
   -fx-text-background-color: #e5edf8;
   -fx-border-color: rgba(148, 163, 184, 0.28);
-  -fx-border-radius: 20px;
-  -fx-background-radius: 20px;
+  -fx-border-radius: 0;
+  -fx-background-radius: 0;
 }
 
 .dialog-pane.form-dialog.dark-theme > .content,

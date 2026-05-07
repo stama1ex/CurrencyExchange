@@ -6,7 +6,7 @@ import com.example.currencyexchange.model.CashDesk;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
 import com.example.currencyexchange.util.IconUtil;
-import com.example.currencyexchange.util.ThemeManager;
+import com.example.currencyexchange.util.ModalDialogUtil;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -490,9 +490,11 @@ public class CashDeskController {
 
     private Optional<CashDeskForm> showCashDeskDialog(CashDesk desk) {
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle(desk == null ? "Добавить кассу" : "Изменить кассу");
-        dialog.getDialogPane().getStyleClass().add("form-dialog");
-        ThemeManager.applyToDialog(dialog.getDialogPane());
+        ModalDialogUtil.configureFormDialog(
+                dialog,
+                desk == null ? "Добавить кассу" : "Изменить кассу",
+                "fas-cash-register"
+        );
 
         ButtonType saveButton = new ButtonType("Сохранить", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelButton = new ButtonType("Отмена", ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -579,7 +581,7 @@ public class CashDeskController {
         Node saveNode = dialog.getDialogPane().lookupButton(saveButton);
         saveNode.disableProperty().bind(validationSupport.invalidProperty());
 
-        Optional<ButtonType> result = dialog.showAndWait();
+        Optional<ButtonType> result = ModalDialogUtil.showAndWait(dialog);
         if (result.isEmpty() || result.get() != saveButton) {
             return Optional.empty();
         }

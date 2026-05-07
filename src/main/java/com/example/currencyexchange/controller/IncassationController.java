@@ -8,7 +8,7 @@ import com.example.currencyexchange.enums.IncassationType;
 import com.example.currencyexchange.model.Incassation;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
-import com.example.currencyexchange.util.ThemeManager;
+import com.example.currencyexchange.util.ModalDialogUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -453,9 +453,11 @@ public class IncassationController {
 
     private Optional<IncassationForm> showIncassationDialog(Incassation incassation) {
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle(incassation == null ? "Добавить запись" : "Изменить запись");
-        dialog.getDialogPane().getStyleClass().add("form-dialog");
-        ThemeManager.applyToDialog(dialog.getDialogPane());
+        ModalDialogUtil.configureFormDialog(
+                dialog,
+                incassation == null ? "Добавить запись" : "Изменить запись",
+                "fas-truck-loading"
+        );
 
         ButtonType saveButton = new ButtonType("Сохранить", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelButton = new ButtonType("Отмена", ButtonBar.ButtonData.CANCEL_CLOSE);
@@ -527,7 +529,7 @@ public class IncassationController {
         Node saveNode = dialog.getDialogPane().lookupButton(saveButton);
         saveNode.disableProperty().bind(validationSupport.invalidProperty());
 
-        Optional<ButtonType> result = dialog.showAndWait();
+        Optional<ButtonType> result = ModalDialogUtil.showAndWait(dialog);
         if (result.isEmpty() || result.get() != saveButton) {
             return Optional.empty();
         }
