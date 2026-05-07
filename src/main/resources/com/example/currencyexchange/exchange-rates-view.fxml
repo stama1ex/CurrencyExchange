@@ -44,6 +44,7 @@
             <Button text="✎ Изменить" onAction="#updateRate" styleClass="secondary-button"/>
             <Button text="Удалить" onAction="#deleteRate" styleClass="danger-button"/>
             <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
+            <Button text="BNM" onAction="#importBnmRates" styleClass="secondary-button"/>
             <Region HBox.hgrow="ALWAYS"/>
             <VBox spacing="4">
                 <Label text="Валюта" styleClass="filter-label"/>

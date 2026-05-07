@@ -2,6 +2,8 @@ module com.example.currencyexchange {
     requires javafx.controls;
     requires javafx.fxml;
     requires java.sql;
+    requires java.net.http;
+    requires java.xml;
     requires org.controlsfx.controls;
     requires atlantafx.base;
 

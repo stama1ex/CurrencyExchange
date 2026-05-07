@@ -3,8 +3,10 @@ package com.example.currencyexchange.controller;
 import com.example.currencyexchange.DatabaseConnection;
 import com.example.currencyexchange.model.Currency;
 import com.example.currencyexchange.model.ExchangeRate;
+import com.example.currencyexchange.service.ExchangeRateAutoUpdateService;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -33,6 +35,8 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 public class ExchangeRateController {
     private static final Currency ALL_CURRENCIES = new Currency("", "Все валюты");
@@ -187,6 +191,31 @@ public class ExchangeRateController {
         applyFilters();
     }
 
+    @FXML
+    private void importBnmRates() {
+        LocalDate date = ExchangeRateAutoUpdateService.todayInAppZone();
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return ExchangeRateAutoUpdateService.updateRatesForDate(date);
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        }).thenAccept(changed -> Platform.runLater(() -> {
+            refreshTable();
+            if (changed > 0) {
+                AlertUtil.info("Курсы BNM", "Курсы за " + date + " импортированы: " + changed);
+            } else {
+                AlertUtil.warning("Курсы BNM", "Для валют из базы нет новых курсов за " + date + ".");
+            }
+        })).exceptionally(error -> {
+            Platform.runLater(() -> AlertUtil.error(
+                    "Курсы BNM",
+                    "Не удалось импортировать курсы: " + rootMessage(error)
+            ));
+            return null;
+        });
+    }
+
     private void applyFilters() {
         Currency selectedCurrency = filterCurrencyBox.getValue();
         String currencyCode = selectedCurrency == null ? "" : selectedCurrency.getCode();
@@ -233,6 +262,14 @@ public class ExchangeRateController {
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось загрузить курсы: " + e.getMessage());
         }
+    }
+
+    private String rootMessage(Throwable error) {
+        Throwable current = error;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current.getMessage() == null ? current.getClass().getSimpleName() : current.getMessage();
     }
 
     private double parsePositive(String value, String message) {
