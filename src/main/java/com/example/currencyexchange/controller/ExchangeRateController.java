@@ -7,6 +7,7 @@ import com.example.currencyexchange.service.ExchangeRateAutoUpdateService;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
 import com.example.currencyexchange.util.IconUtil;
+import com.example.currencyexchange.util.ThemeManager;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -478,6 +479,7 @@ public class ExchangeRateController {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle(rate == null ? "Добавить курс" : "Изменить курс");
         dialog.getDialogPane().getStyleClass().add("form-dialog");
+        ThemeManager.applyToDialog(dialog.getDialogPane());
 
         ButtonType saveButton = new ButtonType("Сохранить", ButtonBar.ButtonData.OK_DONE);
         ButtonType cancelButton = new ButtonType("Отмена", ButtonBar.ButtonData.CANCEL_CLOSE);

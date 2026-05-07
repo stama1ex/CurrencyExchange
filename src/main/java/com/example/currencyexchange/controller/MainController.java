@@ -2,7 +2,9 @@ package com.example.currencyexchange.controller;
 
 import com.example.currencyexchange.DatabaseConnection;
 import com.example.currencyexchange.util.AlertUtil;
+import com.example.currencyexchange.util.IconUtil;
 import com.example.currencyexchange.util.SmoothScrollUtil;
+import com.example.currencyexchange.util.ThemeManager;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -23,6 +25,8 @@ public class MainController {
     private static ReportController reportController;
 
     @FXML
+    private StackPane appRoot;
+    @FXML
     private StackPane contentArea;
     @FXML
     private VBox toastHost;
@@ -42,14 +46,33 @@ public class MainController {
     private Button incassationsButton;
     @FXML
     private Button reportsButton;
+    @FXML
+    private Button themeToggleButton;
 
     @FXML
     public void initialize() {
+        ThemeManager.install(appRoot);
+        updateThemeToggle(ThemeManager.isDarkTheme());
+        ThemeManager.darkThemeProperty().addListener((obs, wasDark, isDark) -> updateThemeToggle(isDark));
         AlertUtil.setToastHost(toastHost);
         testDatabaseConnection();
         SmoothScrollUtil.install(sidebarScrollPane);
         // Показываем Dashboard по умолчанию
         showDashboard();
+    }
+
+    @FXML
+    private void toggleTheme() {
+        ThemeManager.toggleTheme();
+    }
+
+    private void updateThemeToggle(boolean dark) {
+        themeToggleButton.setText(dark ? "Светлая тема" : "Темная тема");
+        IconUtil.setIcon(themeToggleButton, dark ? "fas-sun" : "fas-moon", 14);
+        themeToggleButton.getStyleClass().remove("toggle-on");
+        if (dark) {
+            themeToggleButton.getStyleClass().add("toggle-on");
+        }
     }
 
     /**

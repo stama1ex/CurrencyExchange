@@ -12,6 +12,7 @@
 
 <StackPane xmlns="http://javafx.com/javafx/21"
            xmlns:fx="http://javafx.com/fxml/1"
+           fx:id="appRoot"
            fx:controller="com.example.currencyexchange.controller.MainController"
            stylesheets="@styles.css"
            styleClass="app-root">
@@ -61,6 +62,13 @@
             </VBox>
                 </content>
             </ScrollPane>
+
+            <VBox styleClass="theme-toggle-area">
+                <padding><Insets top="12" right="14" bottom="16" left="14"/></padding>
+                <Button fx:id="themeToggleButton" text="Светлая тема" onAction="#toggleTheme" maxWidth="Infinity" styleClass="sidebar-button theme-toggle-button">
+                    <graphic><FontIcon iconLiteral="fas-sun" iconSize="14" styleClass="app-icon"/></graphic>
+                </Button>
+            </VBox>
         </VBox>
     </left>
 

@@ -133,16 +133,19 @@ public final class AlertUtil {
     }
 
     private static void showFallbackNotification(Type type, String title, String message) {
+        Notifications thresholdNotification = Notifications.create()
+                .title("Уведомления")
+                .text("Есть несколько новых сообщений.");
         Notifications notification = Notifications.create()
                 .title(title)
                 .text(message)
                 .position(Pos.TOP_RIGHT)
                 .hideAfter(Duration.seconds(type.visibleSeconds))
-                .darkStyle()
-                .threshold(MAX_TOASTS, Notifications.create()
-                        .title("Уведомления")
-                        .text("Есть несколько новых сообщений.")
-                        .darkStyle());
+                .threshold(MAX_TOASTS, thresholdNotification);
+        if (ThemeManager.isDarkTheme()) {
+            notification.darkStyle();
+            thresholdNotification.darkStyle();
+        }
         Window owner = findOwnerWindow();
         if (owner != null) {
             notification.owner(owner);
