@@ -291,7 +291,6 @@
 }
 
 .text-field,
-.combo-box-base,
 .date-picker {
   -fx-background-color: white;
   -fx-background-radius: 14px;
@@ -300,8 +299,16 @@
   -fx-padding: 10 12 10 12;
 }
 
+.combo-box-base,
+.searchable-combo-box,
+.check-combo-box {
+  -fx-padding: 0;
+}
+
 .text-field:focused,
 .combo-box-base:focused,
+.searchable-combo-box:focused,
+.check-combo-box:focused,
 .date-picker:focused {
   -fx-border-color: #93c5fd;
   -fx-effect: dropshadow(gaussian, rgba(37, 99, 235, 0.12), 16, 0.16, 0, 0);

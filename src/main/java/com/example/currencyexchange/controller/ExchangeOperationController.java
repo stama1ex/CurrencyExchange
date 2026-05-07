@@ -10,9 +10,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
@@ -21,6 +21,10 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
+import org.controlsfx.control.SearchableComboBox;
+import org.controlsfx.validation.Severity;
+import org.controlsfx.validation.ValidationSupport;
+import org.controlsfx.validation.Validator;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -385,9 +389,18 @@ public class ExchangeOperationController {
         }
     }
 
+    private boolean isPositiveNumber(String value) {
+        try {
+            return ValidationService.isPositive(Double.parseDouble(value));
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
     private Optional<OperationForm> showOperationDialog(ExchangeOperation operation) {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle(operation == null ? "Добавить операцию" : "Изменить операцию");
+        dialog.getDialogPane().getStyleClass().add("form-dialog");
 
         ButtonType saveButton = new ButtonType("Сохранить", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveButton, ButtonType.CANCEL);
@@ -397,12 +410,12 @@ public class ExchangeOperationController {
         grid.setVgap(10);
         grid.setPadding(new Insets(10));
 
-        ComboBox<CashDesk> cashDeskInput = new ComboBox<>();
+        SearchableComboBox<CashDesk> cashDeskInput = new SearchableComboBox<>();
         cashDeskInput.getItems().setAll(loadCashDesks());
         DatePicker dateInput = new DatePicker(operation == null ? LocalDate.now() : operation.getOperationDate());
-        ComboBox<Currency> fromInput = new ComboBox<>();
+        SearchableComboBox<Currency> fromInput = new SearchableComboBox<>();
         fromInput.getItems().setAll(loadCurrencies());
-        ComboBox<Currency> toInput = new ComboBox<>();
+        SearchableComboBox<Currency> toInput = new SearchableComboBox<>();
         toInput.getItems().setAll(loadCurrencies());
         TextField amountFromInput = new TextField(operation == null ? "" : String.valueOf(operation.getAmountFrom()));
         TextField rateInput = new TextField(operation == null ? "" : String.valueOf(operation.getRate()));
@@ -436,6 +449,34 @@ public class ExchangeOperationController {
         grid.add(amountToInput, 1, 6);
 
         dialog.getDialogPane().setContent(grid);
+        ValidationSupport validationSupport = new ValidationSupport();
+        validationSupport.setValidationDecorator(null);
+        validationSupport.setErrorDecorationEnabled(false);
+        validationSupport.registerValidator(cashDeskInput, Validator.createEmptyValidator("Выберите кассу."));
+        validationSupport.registerValidator(dateInput, Validator.createPredicateValidator(
+                (LocalDate value) -> value != null,
+                "Выберите дату операции.",
+                Severity.ERROR
+        ));
+        validationSupport.registerValidator(fromInput, Validator.createEmptyValidator("Выберите исходную валюту."));
+        validationSupport.registerValidator(toInput, Validator.createEmptyValidator("Выберите целевую валюту."));
+        validationSupport.registerValidator(amountFromInput, Validator.createPredicateValidator(
+                this::isPositiveNumber,
+                "Сумма исходной валюты должна быть числом больше 0.",
+                Severity.ERROR
+        ));
+        validationSupport.registerValidator(rateInput, Validator.createPredicateValidator(
+                this::isPositiveNumber,
+                "Курс должен быть числом больше 0.",
+                Severity.ERROR
+        ));
+        validationSupport.registerValidator(amountToInput, Validator.createPredicateValidator(
+                this::isPositiveNumber,
+                "Сумма целевой валюты должна быть числом больше 0.",
+                Severity.ERROR
+        ));
+        Node saveNode = dialog.getDialogPane().lookupButton(saveButton);
+        saveNode.disableProperty().bind(validationSupport.invalidProperty());
 
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isEmpty() || result.get() != saveButton) {

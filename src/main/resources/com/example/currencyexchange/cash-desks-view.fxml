@@ -2,7 +2,6 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
@@ -11,6 +10,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.TilePane?>
 <?import javafx.scene.layout.VBox?>
+<?import org.controlsfx.control.SearchableComboBox?>
 
 <VBox spacing="18" styleClass="page" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.currencyexchange.controller.CashDeskController">
@@ -49,7 +49,7 @@
                 <TextField fx:id="searchField" promptText="Поиск по названию или адресу" prefWidth="250" styleClass="search-field modern-search-field"/>
                 <Button fx:id="clearSearchButton" text="×" onAction="#clearSearch" visible="false" managed="false" focusTraversable="false" StackPane.alignment="CENTER_RIGHT" styleClass="clear-button"/>
             </StackPane>
-            <ComboBox fx:id="filterStatusBox" prefWidth="145" promptText="Статус"/>
+            <SearchableComboBox fx:id="filterStatusBox" prefWidth="145" promptText="Статус"/>
         </HBox>
 
         <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS" styleClass="content-scroll">

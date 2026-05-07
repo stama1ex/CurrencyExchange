@@ -9,9 +9,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
@@ -20,6 +20,10 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
+import org.controlsfx.control.SearchableComboBox;
+import org.controlsfx.validation.Severity;
+import org.controlsfx.validation.ValidationSupport;
+import org.controlsfx.validation.Validator;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -47,7 +51,7 @@ public class ExchangeRateController {
     private TableColumn<ExchangeRate, Double> sellRateColumn;
 
     @FXML
-    private ComboBox<Currency> filterCurrencyBox;
+    private SearchableComboBox<Currency> filterCurrencyBox;
     @FXML
     private DatePicker filterDatePicker;
 
@@ -243,9 +247,18 @@ public class ExchangeRateController {
         }
     }
 
+    private boolean isPositiveNumber(String value) {
+        try {
+            return ValidationService.isPositive(Double.parseDouble(value));
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
     private Optional<RateForm> showRateDialog(ExchangeRate rate) {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle(rate == null ? "Добавить курс" : "Изменить курс");
+        dialog.getDialogPane().getStyleClass().add("form-dialog");
 
         ButtonType saveButton = new ButtonType("Сохранить", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveButton, ButtonType.CANCEL);
@@ -255,7 +268,7 @@ public class ExchangeRateController {
         grid.setVgap(10);
         grid.setPadding(new Insets(10));
 
-        ComboBox<Currency> currencyInput = new ComboBox<>();
+        SearchableComboBox<Currency> currencyInput = new SearchableComboBox<>();
         currencyInput.getItems().setAll(loadCurrencies());
         DatePicker dateInput = new DatePicker(rate == null ? LocalDate.now() : rate.getRateDate());
         TextField buyRateInput = new TextField(rate == null ? "" : String.valueOf(rate.getBuyRateMdl()));
@@ -280,6 +293,27 @@ public class ExchangeRateController {
         grid.add(sellRateInput, 1, 3);
 
         dialog.getDialogPane().setContent(grid);
+        ValidationSupport validationSupport = new ValidationSupport();
+        validationSupport.setValidationDecorator(null);
+        validationSupport.setErrorDecorationEnabled(false);
+        validationSupport.registerValidator(currencyInput, Validator.createEmptyValidator("Выберите валюту."));
+        validationSupport.registerValidator(dateInput, Validator.createPredicateValidator(
+                (LocalDate value) -> value != null,
+                "Выберите дату курса.",
+                Severity.ERROR
+        ));
+        validationSupport.registerValidator(buyRateInput, Validator.createPredicateValidator(
+                this::isPositiveNumber,
+                "Курс покупки должен быть числом больше 0.",
+                Severity.ERROR
+        ));
+        validationSupport.registerValidator(sellRateInput, Validator.createPredicateValidator(
+                this::isPositiveNumber,
+                "Курс продажи должен быть числом больше 0.",
+                Severity.ERROR
+        ));
+        Node saveNode = dialog.getDialogPane().lookupButton(saveButton);
+        saveNode.disableProperty().bind(validationSupport.invalidProperty());
 
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isEmpty() || result.get() != saveButton) {

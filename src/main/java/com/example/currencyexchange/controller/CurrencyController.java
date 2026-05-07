@@ -10,6 +10,7 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
@@ -22,6 +23,9 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
+import org.controlsfx.validation.Severity;
+import org.controlsfx.validation.ValidationSupport;
+import org.controlsfx.validation.Validator;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -291,6 +295,7 @@ public class CurrencyController {
     private Optional<CurrencyForm> showCurrencyDialog(Currency currency) {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle(currency == null ? "Добавить валюту" : "Изменить валюту");
+        dialog.getDialogPane().getStyleClass().add("form-dialog");
 
         ButtonType saveButton = new ButtonType("Сохранить", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveButton, ButtonType.CANCEL);
@@ -309,6 +314,16 @@ public class CurrencyController {
         grid.add(nameInput, 1, 1);
 
         dialog.getDialogPane().setContent(grid);
+        ValidationSupport validationSupport = new ValidationSupport();
+        validationSupport.setValidationDecorator(null);
+        validationSupport.setErrorDecorationEnabled(false);
+        validationSupport.registerValidator(codeInput, Validator.combine(
+                Validator.createEmptyValidator("Код валюты обязателен."),
+                Validator.createRegexValidator("Код должен состоять из 3 латинских букв.", "[A-Za-z]{3}", Severity.ERROR)
+        ));
+        validationSupport.registerValidator(nameInput, Validator.createEmptyValidator("Название валюты обязательно."));
+        Node saveNode = dialog.getDialogPane().lookupButton(saveButton);
+        saveNode.disableProperty().bind(validationSupport.invalidProperty());
 
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isEmpty() || result.get() != saveButton) {

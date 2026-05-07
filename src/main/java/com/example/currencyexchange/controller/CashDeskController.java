@@ -11,10 +11,10 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -24,6 +24,10 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
+import org.controlsfx.control.SearchableComboBox;
+import org.controlsfx.validation.Severity;
+import org.controlsfx.validation.ValidationSupport;
+import org.controlsfx.validation.Validator;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -38,7 +42,7 @@ public class CashDeskController {
     @FXML
     private Button clearSearchButton;
     @FXML
-    private ComboBox<CashDeskStatus> filterStatusBox;
+    private SearchableComboBox<CashDeskStatus> filterStatusBox;
     @FXML
     private TilePane cashDeskCardsContainer;
     @FXML
@@ -404,9 +408,18 @@ public class CashDeskController {
         }
     }
 
+    private boolean isNotNegativeNumber(String value) {
+        try {
+            return ValidationService.isNotNegative(Double.parseDouble(value));
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
     private Optional<CashDeskForm> showCashDeskDialog(CashDesk desk) {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle(desk == null ? "Добавить кассу" : "Изменить кассу");
+        dialog.getDialogPane().getStyleClass().add("form-dialog");
 
         ButtonType saveButton = new ButtonType("Сохранить", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveButton, ButtonType.CANCEL);
@@ -420,7 +433,7 @@ public class CashDeskController {
         TextField addressInput = new TextField(desk == null ? "" : desk.getAddress());
         TextField minLimitInput = new TextField(desk == null ? "" : String.valueOf(desk.getMinLimitMdl()));
         TextField maxLimitInput = new TextField(desk == null ? "" : String.valueOf(desk.getMaxLimitMdl()));
-        ComboBox<CashDeskStatus> statusInput = new ComboBox<>();
+        SearchableComboBox<CashDeskStatus> statusInput = new SearchableComboBox<>();
         statusInput.getItems().setAll(CashDeskStatus.values());
         if (desk != null) {
             statusInput.setValue(CashDeskStatus.fromDbValue(desk.getStatus()));
@@ -438,6 +451,24 @@ public class CashDeskController {
         grid.add(statusInput, 1, 4);
 
         dialog.getDialogPane().setContent(grid);
+        ValidationSupport validationSupport = new ValidationSupport();
+        validationSupport.setValidationDecorator(null);
+        validationSupport.setErrorDecorationEnabled(false);
+        validationSupport.registerValidator(nameInput, Validator.createEmptyValidator("Название кассы обязательно."));
+        validationSupport.registerValidator(addressInput, Validator.createEmptyValidator("Адрес кассы обязателен."));
+        validationSupport.registerValidator(minLimitInput, Validator.createPredicateValidator(
+                this::isNotNegativeNumber,
+                "Минимальный лимит должен быть числом 0 или больше.",
+                Severity.ERROR
+        ));
+        validationSupport.registerValidator(maxLimitInput, Validator.createPredicateValidator(
+                this::isNotNegativeNumber,
+                "Максимальный лимит должен быть числом 0 или больше.",
+                Severity.ERROR
+        ));
+        validationSupport.registerValidator(statusInput, Validator.createEmptyValidator("Выберите статус кассы."));
+        Node saveNode = dialog.getDialogPane().lookupButton(saveButton);
+        saveNode.disableProperty().bind(validationSupport.invalidProperty());
 
         Optional<ButtonType> result = dialog.showAndWait();
         if (result.isEmpty() || result.get() != saveButton) {

@@ -14,6 +14,8 @@
         <junit.version>5.12.1</junit.version>
         <maven.compiler.release>21</maven.compiler.release>
         <javafx.version>21.0.6</javafx.version>
+        <controlsfx.version>11.2.3</controlsfx.version>
+        <atlantafx.version>2.1.0</atlantafx.version>
     </properties>
 
     <dependencies>
@@ -26,6 +28,18 @@
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.controlsfx</groupId>
+            <artifactId>controlsfx</artifactId>
+            <version>${controlsfx.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.github.mkpaz</groupId>
+            <artifactId>atlantafx-base</artifactId>
+            <version>${atlantafx.version}</version>
         </dependency>
 
         <!-- PostgreSQL JDBC Driver -->

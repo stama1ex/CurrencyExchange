@@ -4,13 +4,15 @@ import com.example.currencyexchange.DatabaseConnection;
 import com.example.currencyexchange.service.ExportService;
 import com.example.currencyexchange.util.AlertUtil;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.scene.control.ComboBox;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.stage.FileChooser;
+import org.controlsfx.control.CheckComboBox;
+import org.controlsfx.control.SearchableComboBox;
 
 import java.io.File;
 import java.sql.Connection;
@@ -23,7 +25,9 @@ import java.util.List;
 
 public class ReportController {
     @FXML
-    private ComboBox<String> reportTypeBox;
+    private SearchableComboBox<String> reportTypeBox;
+    @FXML
+    private CheckComboBox<String> columnSelectorBox;
     @FXML
     private TableView<ObservableList<String>> reportTable;
 
@@ -35,6 +39,11 @@ public class ReportController {
     public void initialize() {
         // Регистрируем этот контроллер в MainController для уведомлений об обновлениях
         MainController.setReportController(this);
+
+        columnSelectorBox.setTitle("Колонки");
+        columnSelectorBox.setShowCheckedCount(true);
+        columnSelectorBox.getCheckModel().getCheckedItems()
+                .addListener((ListChangeListener<String>) change -> applyColumnSelection());
         
         reportTypeBox.getItems().addAll(
                 "Статус касс (cash_desk_status)",
@@ -46,9 +55,8 @@ public class ReportController {
                 loadReport();
             }
         });
-        reportTypeBox.getSelectionModel().selectFirst();
         reportTable.setItems(data);
-        loadReport();
+        reportTypeBox.getSelectionModel().selectFirst();
     }
 
     @FXML
@@ -115,6 +123,8 @@ public class ReportController {
                 });
                 reportTable.getColumns().add(column);
             }
+            columnSelectorBox.getItems().setAll(headers);
+            columnSelectorBox.getCheckModel().checkAll();
 
             while (resultSet.next()) {
                 ObservableList<String> row = FXCollections.observableArrayList();
@@ -135,6 +145,11 @@ public class ReportController {
             AlertUtil.warning("Экспорт", "Нет данных для экспорта.");
             return;
         }
+        List<Integer> selectedColumnIndexes = getSelectedColumnIndexes();
+        if (selectedColumnIndexes.isEmpty()) {
+            AlertUtil.warning("Экспорт", "Выберите хотя бы одну колонку для экспорта.");
+            return;
+        }
 
         FileChooser chooser = new FileChooser();
         chooser.setTitle("Сохранить CSV");
@@ -147,11 +162,53 @@ public class ReportController {
         }
 
         try {
-            exportService.exportCsv(file, headers, data);
+            exportService.exportCsv(file, getSelectedHeaders(selectedColumnIndexes), getSelectedRows(selectedColumnIndexes));
             AlertUtil.info("Экспорт", "Файл успешно сохранен: " + file.getAbsolutePath());
         } catch (Exception e) {
             AlertUtil.error("Экспорт", "Не удалось экспортировать файл: " + e.getMessage());
         }
+    }
+
+    private void applyColumnSelection() {
+        if (reportTable == null || headers.isEmpty()) {
+            return;
+        }
+
+        List<String> selectedHeaders = columnSelectorBox.getCheckModel().getCheckedItems();
+        for (TableColumn<ObservableList<String>, ?> column : reportTable.getColumns()) {
+            column.setVisible(selectedHeaders.contains(column.getText()));
+        }
+    }
+
+    private List<Integer> getSelectedColumnIndexes() {
+        List<String> selectedHeaders = columnSelectorBox.getCheckModel().getCheckedItems();
+        List<Integer> indexes = new ArrayList<>();
+        for (int i = 0; i < headers.size(); i++) {
+            if (selectedHeaders.contains(headers.get(i))) {
+                indexes.add(i);
+            }
+        }
+        return indexes;
+    }
+
+    private List<String> getSelectedHeaders(List<Integer> indexes) {
+        List<String> selectedHeaders = new ArrayList<>();
+        for (int index : indexes) {
+            selectedHeaders.add(headers.get(index));
+        }
+        return selectedHeaders;
+    }
+
+    private ObservableList<ObservableList<String>> getSelectedRows(List<Integer> indexes) {
+        ObservableList<ObservableList<String>> selectedRows = FXCollections.observableArrayList();
+        for (ObservableList<String> row : data) {
+            ObservableList<String> selectedRow = FXCollections.observableArrayList();
+            for (int index : indexes) {
+                selectedRow.add(index < row.size() ? row.get(index) : "");
+            }
+            selectedRows.add(selectedRow);
+        }
+        return selectedRows;
     }
 }
 
