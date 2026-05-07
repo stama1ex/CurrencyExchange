@@ -185,6 +185,7 @@ public class IncassationController {
             refreshTable();
             // Уведомляем об обновлении данных для синхронизации отчетов и баланса
             MainController.notifyReportUpdate();
+            AlertUtil.success("Инкассации", "Запись успешно добавлена.");
         } catch (IllegalArgumentException e) {
             AlertUtil.warning("Валидация", e.getMessage());
         } catch (SQLException e) {
@@ -252,6 +253,7 @@ public class IncassationController {
             refreshTable();
             // Уведомляем об обновлении данных для синхронизации отчетов и баланса
             MainController.notifyReportUpdate();
+            AlertUtil.success("Инкассации", "Запись успешно изменена.");
         } catch (IllegalArgumentException e) {
             AlertUtil.warning("Валидация", e.getMessage());
         } catch (SQLException e) {
@@ -286,6 +288,7 @@ public class IncassationController {
             refreshTable();
             // Уведомляем об обновлении данных для синхронизации отчетов и баланса
             MainController.notifyReportUpdate();
+            AlertUtil.success("Инкассации", "Запись успешно удалена.");
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось удалить запись: " + e.getMessage());
         }

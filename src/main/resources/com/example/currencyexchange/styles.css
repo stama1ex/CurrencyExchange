@@ -520,6 +520,14 @@
   -fx-pref-columns: 4;
 }
 
+.cards-list {
+  -fx-spacing: 16;
+}
+
+.cash-desk-card-action {
+  -fx-min-width: 104px;
+}
+
 .currency-card,
 .cash-desk-card {
   -fx-background-color: linear-gradient(to bottom right, #ffffff, #f8fbff);
@@ -868,6 +876,10 @@
   -fx-border-color: #bfdbfe;
 }
 
+.app-toast-success {
+  -fx-border-color: #bbf7d0;
+}
+
 .app-toast-warning {
   -fx-border-color: #fde68a;
 }
@@ -894,6 +906,15 @@
 
 .app-toast-icon-info .app-icon {
   -fx-icon-color: #1d4ed8;
+}
+
+.app-toast-icon-success {
+  -fx-background-color: #dcfce7;
+  -fx-text-fill: #15803d;
+}
+
+.app-toast-icon-success .app-icon {
+  -fx-icon-color: #15803d;
 }
 
 .app-toast-icon-warning {
@@ -1471,6 +1492,7 @@
 }
 
 .dark-theme .app-toast-icon-info,
+.dark-theme .app-toast-icon-success,
 .dark-theme .app-toast-icon-warning,
 .dark-theme .app-toast-icon-error {
   -fx-background-color: transparent;
@@ -1480,6 +1502,10 @@
 
 .dark-theme .app-toast-icon-info {
   -fx-border-color: rgba(96, 165, 250, 0.56);
+}
+
+.dark-theme .app-toast-icon-success {
+  -fx-border-color: rgba(74, 222, 128, 0.56);
 }
 
 .dark-theme .app-toast-icon-warning {

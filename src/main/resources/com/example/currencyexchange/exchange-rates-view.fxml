@@ -28,12 +28,6 @@
             <Button text="Добавить" onAction="#addRate" styleClass="primary-button">
                 <graphic><FontIcon iconLiteral="fas-plus" iconSize="12" styleClass="app-icon"/></graphic>
             </Button>
-            <Button text="Изменить" onAction="#updateRate" styleClass="secondary-button">
-                <graphic><FontIcon iconLiteral="fas-pen" iconSize="12" styleClass="app-icon"/></graphic>
-            </Button>
-            <Button text="Удалить" onAction="#deleteRate" styleClass="danger-button">
-                <graphic><FontIcon iconLiteral="fas-trash" iconSize="12" styleClass="app-icon"/></graphic>
-            </Button>
             <Button text="BNM" onAction="#importBnmRates" styleClass="secondary-button">
                 <graphic><FontIcon iconLiteral="fas-cloud-download-alt" iconSize="12" styleClass="app-icon"/></graphic>
             </Button>

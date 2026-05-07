@@ -109,7 +109,7 @@ public class ExchangeRateAutoUpdateService {
         try {
             int changed = fetchAndStoreRates(date);
             if (notify && changed > 0) {
-                AlertUtil.info("Курсы BNM", "Курсы за " + date + " обновлены: " + changed);
+                AlertUtil.success("Курсы BNM", "Курсы за " + date + " обновлены: " + changed);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -121,7 +121,7 @@ public class ExchangeRateAutoUpdateService {
 
     private void notifyFailure(boolean notify, Exception e) {
         if (notify && started) {
-            AlertUtil.warning("Курсы BNM", "Не удалось обновить курсы автоматически: " + e.getMessage());
+            AlertUtil.error("Курсы BNM", "Не удалось обновить курсы автоматически: " + e.getMessage());
         }
     }
 

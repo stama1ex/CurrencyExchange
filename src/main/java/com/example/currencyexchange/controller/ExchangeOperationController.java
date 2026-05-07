@@ -144,6 +144,7 @@ public class ExchangeOperationController {
             refreshTable();
             // Уведомляем об обновлении данных для синхронизации отчетов и баланса
             MainController.notifyReportUpdate();
+            AlertUtil.success("Операции обмена", "Операция успешно добавлена.");
         } catch (IllegalArgumentException e) {
             AlertUtil.warning("Валидация", e.getMessage());
         } catch (SQLException e) {
@@ -214,6 +215,7 @@ public class ExchangeOperationController {
             refreshTable();
             // Уведомляем об обновлении данных для синхронизации отчетов и баланса
             MainController.notifyReportUpdate();
+            AlertUtil.success("Операции обмена", "Операция успешно изменена.");
         } catch (IllegalArgumentException e) {
             AlertUtil.warning("Валидация", e.getMessage());
         } catch (SQLException e) {
@@ -248,6 +250,7 @@ public class ExchangeOperationController {
             refreshTable();
             // Уведомляем об обновлении данных для синхронизации отчетов и баланса
             MainController.notifyReportUpdate();
+            AlertUtil.success("Операции обмена", "Операция успешно удалена.");
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось удалить операцию: " + e.getMessage());
         }

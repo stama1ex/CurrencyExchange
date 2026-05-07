@@ -114,6 +114,7 @@ public class ExchangeRateController {
                 statement.executeUpdate();
             }
             refreshTable();
+            AlertUtil.success("Курсы валют", "Курс успешно добавлен.");
         } catch (IllegalArgumentException e) {
             AlertUtil.warning("Валидация", e.getMessage());
         } catch (SQLException e) {
@@ -159,6 +160,7 @@ public class ExchangeRateController {
                 statement.executeUpdate();
             }
             refreshTable();
+            AlertUtil.success("Курсы валют", "Курс успешно изменен.");
         } catch (IllegalArgumentException e) {
             AlertUtil.warning("Валидация", e.getMessage());
         } catch (SQLException e) {
@@ -181,6 +183,7 @@ public class ExchangeRateController {
             statement.executeUpdate();
             selectedRate = null;
             refreshTable();
+            AlertUtil.success("Курсы валют", "Курс успешно удален.");
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось удалить курс: " + e.getMessage());
         }
@@ -209,7 +212,7 @@ public class ExchangeRateController {
         }).thenAccept(changed -> Platform.runLater(() -> {
             refreshTable();
             if (changed > 0) {
-                AlertUtil.info("Курсы BNM", "Курсы за " + date + " импортированы: " + changed);
+                AlertUtil.success("Курсы BNM", "Курсы за " + date + " импортированы: " + changed);
             } else {
                 AlertUtil.warning("Курсы BNM", "Для валют из базы нет новых курсов за " + date + ".");
             }

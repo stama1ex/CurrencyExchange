@@ -8,7 +8,6 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
-<?import javafx.scene.layout.TilePane?>
 <?import javafx.scene.layout.VBox?>
 <?import org.controlsfx.control.SearchableComboBox?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
@@ -29,12 +28,6 @@
             <Button text="Добавить" onAction="#addCashDesk" styleClass="primary-button">
                 <graphic><FontIcon iconLiteral="fas-plus" iconSize="12" styleClass="app-icon"/></graphic>
             </Button>
-            <Button text="Изменить" onAction="#updateCashDesk" styleClass="secondary-button">
-                <graphic><FontIcon iconLiteral="fas-pen" iconSize="12" styleClass="app-icon"/></graphic>
-            </Button>
-            <Button text="Удалить" onAction="#deleteCashDesk" styleClass="danger-button">
-                <graphic><FontIcon iconLiteral="fas-trash" iconSize="12" styleClass="app-icon"/></graphic>
-            </Button>
             <Region HBox.hgrow="ALWAYS"/>
             <StackPane prefWidth="250">
                 <TextField fx:id="searchField" promptText="Поиск по названию, адресу или телефону" prefWidth="250" styleClass="search-field modern-search-field"/>
@@ -47,9 +40,9 @@
 
         <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS" styleClass="content-scroll">
             <content>
-                <TilePane fx:id="cashDeskCardsContainer" prefColumns="3" hgap="16" vgap="16" styleClass="cards-grid">
+                <VBox fx:id="cashDeskCardsContainer" spacing="16" styleClass="cards-list">
                     <padding><Insets top="18" right="18" bottom="18" left="18"/></padding>
-                </TilePane>
+                </VBox>
             </content>
         </ScrollPane>
     </VBox>

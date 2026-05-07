@@ -24,7 +24,6 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 import org.controlsfx.control.SearchableComboBox;
 import org.controlsfx.validation.Severity;
@@ -48,7 +47,7 @@ public class CashDeskController {
     @FXML
     private SearchableComboBox<String> filterStatusBox;
     @FXML
-    private TilePane cashDeskCardsContainer;
+    private VBox cashDeskCardsContainer;
     @FXML
     private Label cashDesksTotalLabel;
     @FXML
@@ -113,6 +112,7 @@ public class CashDeskController {
                 statement.executeUpdate();
             }
             refreshTable();
+            AlertUtil.success("Кассы", "Касса успешно добавлена.");
         } catch (IllegalArgumentException e) {
             AlertUtil.warning("Валидация", e.getMessage());
         } catch (SQLException e) {
@@ -167,6 +167,7 @@ public class CashDeskController {
                 statement.executeUpdate();
             }
             refreshTable();
+            AlertUtil.success("Кассы", "Касса успешно изменена.");
         } catch (IllegalArgumentException e) {
             AlertUtil.warning("Валидация", e.getMessage());
         } catch (SQLException e) {
@@ -189,6 +190,7 @@ public class CashDeskController {
             statement.executeUpdate();
             selectedCashDesk = null;
             refreshTable();
+            AlertUtil.success("Кассы", "Касса успешно удалена.");
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось удалить кассу: " + e.getMessage());
         }
@@ -277,6 +279,7 @@ public class CashDeskController {
             Label text = new Label("По вашему запросу кассы не найдены.");
             text.getStyleClass().add("empty-state-label");
             empty.getChildren().addAll(icon, text);
+            empty.setMaxWidth(Double.MAX_VALUE);
             cashDeskCardsContainer.getChildren().add(empty);
             updateSummary();
             return;
@@ -295,9 +298,8 @@ public class CashDeskController {
             card.getStyleClass().add("selected");
         }
         card.setPadding(new Insets(18));
-        card.setPrefWidth(320);
-        card.setMinWidth(300);
-        card.setMaxWidth(340);
+        card.setMinWidth(0);
+        card.setMaxWidth(Double.MAX_VALUE);
 
         HBox top = new HBox(8);
         top.setAlignment(Pos.CENTER_LEFT);
@@ -305,17 +307,17 @@ public class CashDeskController {
         idBadge.getStyleClass().add("cash-desk-id-badge");
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        Button editButton = new Button();
-        IconUtil.setIconOnly(editButton, "fas-pen");
-        editButton.getStyleClass().addAll("icon-action-button", "ghost-button");
+        Button editButton = new Button("Изменить");
+        IconUtil.setIcon(editButton, "fas-pen", 12);
+        editButton.getStyleClass().addAll("secondary-button", "cash-desk-card-action");
         editButton.setOnAction(event -> {
             selectCashDesk(desk);
             updateCashDesk();
             event.consume();
         });
-        Button deleteButton = new Button();
-        IconUtil.setIconOnly(deleteButton, "fas-trash");
-        deleteButton.getStyleClass().addAll("icon-action-button", "danger-ghost-button");
+        Button deleteButton = new Button("Удалить");
+        IconUtil.setIcon(deleteButton, "fas-trash", 12);
+        deleteButton.getStyleClass().addAll("danger-button", "cash-desk-card-action");
         deleteButton.setOnAction(event -> {
             selectCashDesk(desk);
             deleteCashDesk();
@@ -370,6 +372,7 @@ public class CashDeskController {
         VBox box = new VBox(4);
         box.getStyleClass().add("cash-desk-limit-box");
         HBox.setHgrow(box, Priority.ALWAYS);
+        box.setMaxWidth(Double.MAX_VALUE);
 
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("cash-desk-limit-title");

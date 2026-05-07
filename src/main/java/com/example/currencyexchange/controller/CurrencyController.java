@@ -83,6 +83,7 @@ public class CurrencyController {
                 statement.executeUpdate();
             }
             refreshTable();
+            AlertUtil.success("Валюты", "Валюта успешно добавлена.");
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось добавить валюту: " + e.getMessage());
         }
@@ -116,6 +117,7 @@ public class CurrencyController {
                 statement.executeUpdate();
             }
             refreshTable();
+            AlertUtil.success("Валюты", "Валюта успешно изменена.");
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось изменить валюту: " + e.getMessage());
         }
@@ -136,6 +138,7 @@ public class CurrencyController {
             statement.executeUpdate();
             selectedCurrency = null;
             refreshTable();
+            AlertUtil.success("Валюты", "Валюта успешно удалена.");
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось удалить валюту: " + e.getMessage());
         }

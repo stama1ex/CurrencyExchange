@@ -35,6 +35,10 @@ public final class AlertUtil {
         show(Type.INFO, title, message);
     }
 
+    public static void success(String title, String message) {
+        show(Type.SUCCESS, title, message);
+    }
+
     public static void error(String title, String message) {
         show(Type.ERROR, title, message);
     }
@@ -153,6 +157,7 @@ public final class AlertUtil {
 
         switch (type) {
             case INFO -> notification.showInformation();
+            case SUCCESS -> notification.showInformation();
             case WARNING -> notification.showWarning();
             case ERROR -> notification.showError();
         }
@@ -174,6 +179,7 @@ public final class AlertUtil {
 
     private enum Type {
         INFO("fas-info", "app-toast-info", "app-toast-icon-info", 4),
+        SUCCESS("fas-check-circle", "app-toast-success", "app-toast-icon-success", 4),
         WARNING("fas-exclamation-triangle", "app-toast-warning", "app-toast-icon-warning", 5),
         ERROR("fas-times-circle", "app-toast-error", "app-toast-icon-error", 7);
 

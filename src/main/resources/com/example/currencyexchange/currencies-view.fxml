@@ -29,12 +29,6 @@
             <Button text="Добавить" onAction="#addCurrency" styleClass="primary-button">
                 <graphic><FontIcon iconLiteral="fas-plus" iconSize="12" styleClass="app-icon"/></graphic>
             </Button>
-            <Button text="Изменить" onAction="#updateCurrency" styleClass="secondary-button">
-                <graphic><FontIcon iconLiteral="fas-pen" iconSize="12" styleClass="app-icon"/></graphic>
-            </Button>
-            <Button text="Удалить" onAction="#deleteCurrency" styleClass="danger-button">
-                <graphic><FontIcon iconLiteral="fas-trash" iconSize="12" styleClass="app-icon"/></graphic>
-            </Button>
             <Region HBox.hgrow="ALWAYS"/>
             <StackPane prefWidth="320">
                 <TextField fx:id="searchField" promptText="Поиск по коду или названию валюты" onAction="#searchCurrencies" prefWidth="320" styleClass="search-field modern-search-field"/>
