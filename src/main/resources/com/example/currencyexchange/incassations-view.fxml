@@ -9,6 +9,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import org.controlsfx.control.SearchableComboBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox spacing="18" styleClass="page" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.currencyexchange.controller.IncassationController">
@@ -23,28 +24,39 @@
 
     <HBox spacing="16">
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="🚚 Движение наличности" styleClass="mini-stat-title"/>
+            <Label text="Движение наличности" styleClass="mini-stat-title">
+                <graphic><FontIcon iconLiteral="fas-truck-loading" iconSize="13" styleClass="app-icon"/></graphic>
+            </Label>
             <Label text="Отображаются пополнения и инкассации по всем валютам" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="🏷 Статусы выполнения" styleClass="mini-stat-title"/>
+            <Label text="Статусы выполнения" styleClass="mini-stat-title">
+                <graphic><FontIcon iconLiteral="fas-tags" iconSize="13" styleClass="app-icon"/></graphic>
+            </Label>
             <Label text="Фильтрация по статусу помогает контролировать процесс" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="📦 Операции по кассам" styleClass="mini-stat-title"/>
+            <Label text="Операции по кассам" styleClass="mini-stat-title">
+                <graphic><FontIcon iconLiteral="fas-box" iconSize="13" styleClass="app-icon"/></graphic>
+            </Label>
             <Label text="В таблице видно кассу, дату, валюту и тип операции" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
     </HBox>
 
     <VBox styleClass="section-card" spacing="0" VBox.vgrow="ALWAYS">
         <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
-            <Button text="＋ Добавить" onAction="#addIncassation" styleClass="primary-button"/>
-            <Button text="✎ Изменить" onAction="#updateIncassation" styleClass="secondary-button"/>
-            <Button text="Удалить" onAction="#deleteIncassation" styleClass="danger-button"/>
-            <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
+            <Button text="Добавить" onAction="#addIncassation" styleClass="primary-button">
+                <graphic><FontIcon iconLiteral="fas-plus" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
+            <Button text="Изменить" onAction="#updateIncassation" styleClass="secondary-button">
+                <graphic><FontIcon iconLiteral="fas-pen" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
+            <Button text="Удалить" onAction="#deleteIncassation" styleClass="danger-button">
+                <graphic><FontIcon iconLiteral="fas-trash" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
             <Region HBox.hgrow="ALWAYS"/>
             <Label text="Статус" styleClass="filter-label"/>
-            <SearchableComboBox fx:id="filterStatusBox" prefWidth="180"/>
+            <SearchableComboBox fx:id="filterStatusBox" prefWidth="180" promptText="Все"/>
         </HBox>
         <TableView fx:id="incassationTable" VBox.vgrow="ALWAYS" styleClass="modern-table">
             <columns>

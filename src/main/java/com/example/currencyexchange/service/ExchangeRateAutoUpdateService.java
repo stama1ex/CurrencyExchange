@@ -41,6 +41,7 @@ public class ExchangeRateAutoUpdateService {
     private static final String BNM_ENDPOINT = "https://www.bnm.md/en/official_exchange_rates";
     private static final ZoneId APP_ZONE = ZoneId.of("Europe/Chisinau");
     private static final DateTimeFormatter API_DATE_FORMAT = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final BigDecimal SELL_RATE_MARKUP = new BigDecimal("0.20");
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(12))
@@ -216,10 +217,11 @@ public class ExchangeRateAutoUpdateService {
 
     private int upsertRate(Connection connection, String currencyCode, LocalDate date, BigDecimal rate)
             throws SQLException {
+        BigDecimal sellRate = rate.add(SELL_RATE_MARKUP);
         String updateSql = "UPDATE exchange_rates SET buy_rate_mdl=?, sell_rate_mdl=? WHERE currency_code=? AND rate_date=?";
         try (PreparedStatement statement = connection.prepareStatement(updateSql)) {
             statement.setBigDecimal(1, rate);
-            statement.setBigDecimal(2, rate);
+            statement.setBigDecimal(2, sellRate);
             statement.setString(3, currencyCode);
             statement.setDate(4, Date.valueOf(date));
             int updated = statement.executeUpdate();
@@ -233,7 +235,7 @@ public class ExchangeRateAutoUpdateService {
             statement.setString(1, currencyCode);
             statement.setDate(2, Date.valueOf(date));
             statement.setBigDecimal(3, rate);
-            statement.setBigDecimal(4, rate);
+            statement.setBigDecimal(4, sellRate);
             return statement.executeUpdate();
         }
     }

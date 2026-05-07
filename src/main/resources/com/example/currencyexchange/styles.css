@@ -266,6 +266,60 @@
   -fx-background-color: linear-gradient(to right, #cb3939, #c42b45);
 }
 
+.app-icon,
+.ikonli-font-icon {
+  -fx-icon-color: #334155;
+}
+
+.button .app-icon {
+  -fx-icon-color: #0f172a;
+}
+
+.primary-button .app-icon,
+.danger-button .app-icon {
+  -fx-icon-color: white;
+}
+
+.secondary-button .app-icon {
+  -fx-icon-color: #334155;
+}
+
+.sidebar .sidebar-button .app-icon {
+  -fx-icon-color: white;
+}
+
+.sidebar .sidebar-button.active .app-icon {
+  -fx-icon-color: black;
+}
+
+.mini-stat-title .app-icon {
+  -fx-icon-color: #2563eb;
+}
+
+.section-title .app-icon {
+  -fx-icon-color: #2563eb;
+}
+
+.stat-kicker .app-icon {
+  -fx-icon-color: rgba(255, 255, 255, 0.88);
+}
+
+.soft-chip .app-icon {
+  -fx-icon-color: #475569;
+}
+
+.clear-button .app-icon {
+  -fx-icon-color: #94a3b8;
+}
+
+.ghost-button .app-icon {
+  -fx-icon-color: #2563eb;
+}
+
+.danger-ghost-button .app-icon {
+  -fx-icon-color: #ef4444;
+}
+
 .ghost-button,
 .danger-ghost-button,
 .icon-action-button {
@@ -302,7 +356,35 @@
 .combo-box-base,
 .searchable-combo-box,
 .check-combo-box {
+  -fx-background-color: white;
+  -fx-background-radius: 14px;
+  -fx-border-color: #dbe4f0;
+  -fx-border-radius: 14px;
   -fx-padding: 0;
+}
+
+.combo-box-base > .list-cell {
+  -fx-background-color: transparent;
+  -fx-padding: 10 12 10 12;
+}
+
+.combo-box-base > .arrow-button {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-background-radius: 0 14px 14px 0;
+  -fx-border-color: transparent;
+  -fx-padding: 0 12 0 8;
+}
+
+.combo-box-base > .arrow-button > .arrow {
+  -fx-background-color: #64748b;
+}
+
+.check-combo-box > .combo-box {
+  -fx-background-color: transparent;
+  -fx-border-color: transparent;
+  -fx-background-radius: 14px;
+  -fx-border-radius: 14px;
 }
 
 .text-field:focused,
@@ -470,6 +552,19 @@
   -fx-font-size: 13px;
 }
 
+.currency-flag {
+  -fx-background-color: #f8fafc;
+  -fx-background-radius: 8px;
+  -fx-border-color: #dbe4f0;
+  -fx-border-radius: 8px;
+}
+
+.currency-flag-fallback {
+  -fx-text-fill: #475569;
+  -fx-font-size: 11px;
+  -fx-font-weight: 900;
+}
+
 .currency-card-title {
   -fx-text-fill: #0f172a;
   -fx-font-size: 17px;
@@ -502,6 +597,86 @@
   -fx-text-fill: #0f172a;
   -fx-font-size: 13px;
   -fx-font-weight: 800;
+}
+
+.rate-groups-list {
+  -fx-background-color: transparent;
+}
+
+.load-more-bar {
+  -fx-padding: 0 14 14 14;
+}
+
+.exchange-rate-date-card {
+  -fx-background-color: #ffffff;
+  -fx-background-radius: 14px;
+  -fx-border-color: #e2e8f0;
+  -fx-border-radius: 14px;
+  -fx-padding: 12;
+  -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.04), 12, 0.12, 0, 4);
+}
+
+.exchange-rate-date-title {
+  -fx-text-fill: #0f172a;
+  -fx-font-size: 15px;
+  -fx-font-weight: 800;
+}
+
+.exchange-rate-count {
+  -fx-background-color: #eef2ff;
+  -fx-background-radius: 999px;
+  -fx-text-fill: #3730a3;
+  -fx-padding: 5 9 5 9;
+  -fx-font-size: 11px;
+  -fx-font-weight: 800;
+}
+
+.exchange-rate-rows {
+  -fx-background-color: transparent;
+}
+
+.exchange-rate-row {
+  -fx-background-color: #f8fafc;
+  -fx-background-radius: 10px;
+  -fx-border-color: transparent;
+  -fx-border-radius: 10px;
+  -fx-padding: 8 10 8 10;
+  -fx-cursor: hand;
+}
+
+.exchange-rate-row:hover {
+  -fx-background-color: #f1f5f9;
+}
+
+.exchange-rate-row.selected {
+  -fx-background-color: #dbeafe;
+  -fx-border-color: #93c5fd;
+}
+
+.exchange-rate-currency {
+  -fx-text-fill: #0f172a;
+  -fx-font-size: 12px;
+  -fx-font-weight: 800;
+}
+
+.exchange-rate-value {
+  -fx-background-color: white;
+  -fx-background-radius: 8px;
+  -fx-border-color: #e2e8f0;
+  -fx-border-radius: 8px;
+  -fx-padding: 5 8 5 8;
+  -fx-font-size: 12px;
+  -fx-font-weight: 800;
+  -fx-min-width: 132px;
+  -fx-alignment: CENTER_LEFT;
+}
+
+.rate-buy-value {
+  -fx-text-fill: #047857;
+}
+
+.rate-sell-value {
+  -fx-text-fill: #1d4ed8;
 }
 
 .soft-chip {
@@ -560,6 +735,10 @@
   -fx-font-size: 18px;
 }
 
+.attention-icon .app-icon {
+  -fx-icon-color: #2563eb;
+}
+
 .attention-title {
   -fx-text-fill: #0f172a;
   -fx-font-size: 14px;
@@ -584,6 +763,11 @@
 
 .empty-state-icon {
   -fx-font-size: 34px;
+}
+
+.empty-state-icon .app-icon {
+  -fx-icon-color: #94a3b8;
+  -fx-icon-size: 30px;
 }
 
 .modern-chart {
@@ -704,14 +888,26 @@
   -fx-text-fill: #1d4ed8;
 }
 
+.app-toast-icon-info .app-icon {
+  -fx-icon-color: #1d4ed8;
+}
+
 .app-toast-icon-warning {
   -fx-background-color: #fef3c7;
   -fx-text-fill: #b45309;
 }
 
+.app-toast-icon-warning .app-icon {
+  -fx-icon-color: #b45309;
+}
+
 .app-toast-icon-error {
   -fx-background-color: #fee2e2;
   -fx-text-fill: #b91c1c;
+}
+
+.app-toast-icon-error .app-icon {
+  -fx-icon-color: #b91c1c;
 }
 
 .app-toast-title {

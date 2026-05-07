@@ -10,6 +10,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.currencyexchange.controller.DashboardController"
@@ -29,7 +30,9 @@
                 <String fx:value="stat-card"/>
                 <String fx:value="gradient-blue"/>
             </styleClass>
-            <Label text="Валюты" styleClass="stat-kicker"/>
+            <Label text="Валюты" styleClass="stat-kicker">
+                <graphic><FontIcon iconLiteral="fas-coins" iconSize="13" styleClass="app-icon"/></graphic>
+            </Label>
             <Label fx:id="currenciesCount" text="0" styleClass="stat-value"/>
             <Label text="активных валют в системе" styleClass="stat-title"/>
         </VBox>
@@ -38,7 +41,9 @@
                 <String fx:value="stat-card"/>
                 <String fx:value="gradient-green"/>
             </styleClass>
-            <Label text="Кассы" styleClass="stat-kicker"/>
+            <Label text="Кассы" styleClass="stat-kicker">
+                <graphic><FontIcon iconLiteral="fas-cash-register" iconSize="13" styleClass="app-icon"/></graphic>
+            </Label>
             <Label fx:id="cashDesksCount" text="0" styleClass="stat-value"/>
             <Label text="обменных точек подключено" styleClass="stat-title"/>
         </VBox>
@@ -47,7 +52,9 @@
                 <String fx:value="stat-card"/>
                 <String fx:value="gradient-orange"/>
             </styleClass>
-            <Label text="Операции" styleClass="stat-kicker"/>
+            <Label text="Операции" styleClass="stat-kicker">
+                <graphic><FontIcon iconLiteral="fas-random" iconSize="13" styleClass="app-icon"/></graphic>
+            </Label>
             <Label fx:id="operationsCount" text="0" styleClass="stat-value"/>
             <Label text="обменных операций проведено" styleClass="stat-title"/>
         </VBox>
@@ -56,7 +63,9 @@
                 <String fx:value="stat-card"/>
                 <String fx:value="gradient-pink"/>
             </styleClass>
-            <Label text="🚚 Инкассации" styleClass="stat-kicker"/>
+            <Label text="Инкассации" styleClass="stat-kicker">
+                <graphic><FontIcon iconLiteral="fas-truck-loading" iconSize="13" styleClass="app-icon"/></graphic>
+            </Label>
             <Label fx:id="incassationsCount" text="0" styleClass="stat-value"/>
             <Label text="операций инкассации оформлено" styleClass="stat-title"/>
         </VBox>
@@ -69,7 +78,9 @@
             </styleClass>
             <HBox alignment="CENTER_LEFT">
                 <VBox spacing="4">
-                    <Label text="Динамика обменных операций" styleClass="section-title"/>
+                    <Label text="Динамика обменных операций" styleClass="section-title">
+                        <graphic><FontIcon iconLiteral="fas-chart-bar" iconSize="14" styleClass="app-icon"/></graphic>
+                    </Label>
                     <Label text="Последние 7 дней" styleClass="section-subtitle"/>
                 </VBox>
             </HBox>
@@ -89,7 +100,9 @@
                 <String fx:value="compact-card"/>
             </styleClass>
             <VBox spacing="4">
-                <Label text="Рекомендации по кассам" styleClass="section-title"/>
+                <Label text="Рекомендации по кассам" styleClass="section-title">
+                    <graphic><FontIcon iconLiteral="fas-lightbulb" iconSize="14" styleClass="app-icon"/></graphic>
+                </Label>
                 <Label text="Распределение текущих статусов" styleClass="section-subtitle"/>
             </VBox>
             <PieChart fx:id="recommendationChart" labelsVisible="false" legendVisible="true" minHeight="310" prefHeight="310" styleClass="modern-pie-chart" VBox.vgrow="ALWAYS"/>
@@ -101,7 +114,9 @@
             <String fx:value="section-card"/>
         </styleClass>
         <VBox spacing="4">
-            <Label text="Кассы, требующие внимания" styleClass="section-title"/>
+            <Label text="Кассы, требующие внимания" styleClass="section-title">
+                <graphic><FontIcon iconLiteral="fas-exclamation-circle" iconSize="14" styleClass="app-icon"/></graphic>
+            </Label>
             <Label text="Вместо большой таблицы — компактная лента приоритетов" styleClass="section-subtitle"/>
         </VBox>
         <VBox fx:id="alertsContainer" spacing="12"/>

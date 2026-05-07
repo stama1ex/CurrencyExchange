@@ -5,6 +5,7 @@ import com.example.currencyexchange.enums.CashDeskStatus;
 import com.example.currencyexchange.model.CashDesk;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
+import com.example.currencyexchange.util.IconUtil;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -37,12 +38,14 @@ import java.text.DecimalFormat;
 import java.util.Optional;
 
 public class CashDeskController {
+    private static final String ALL_FILTER = "Все";
+
     @FXML
     private TextField searchField;
     @FXML
     private Button clearSearchButton;
     @FXML
-    private SearchableComboBox<CashDeskStatus> filterStatusBox;
+    private SearchableComboBox<String> filterStatusBox;
     @FXML
     private TilePane cashDeskCardsContainer;
     @FXML
@@ -58,8 +61,8 @@ public class CashDeskController {
 
     @FXML
     public void initialize() {
-        filterStatusBox.getItems().add(null);
-        filterStatusBox.getItems().addAll(CashDeskStatus.values());
+        filterStatusBox.getItems().setAll(loadStatusFilterOptions());
+        filterStatusBox.getSelectionModel().selectFirst();
         filterStatusBox.valueProperty().addListener((obs, oldVal, newVal) -> searchAndFilter());
 
         clearSearchButton.visibleProperty().bind(Bindings.isNotEmpty(searchField.textProperty()));
@@ -198,7 +201,7 @@ public class CashDeskController {
     @FXML
     private void searchAndFilter() {
         String searchText = searchField.getText().trim();
-        CashDeskStatus status = filterStatusBox.getValue();
+        String status = selectedStatusFilter();
         loadCashDesks(searchText, status);
         updateMeta(buildMetaText(searchText, status));
     }
@@ -208,14 +211,14 @@ public class CashDeskController {
         searchField.clear();
     }
 
-    private void loadCashDesks(String searchText, CashDeskStatus status) {
+    private void loadCashDesks(String searchText, String status) {
         displayedCashDesks.clear();
         String search = "%" + searchText.toUpperCase() + "%";
 
         StringBuilder sql = new StringBuilder(
                 "SELECT cash_desk_id, cash_desk_name, address, phone, balance_mdl, balance_ron, balance_eur, balance_usd, min_limit_mdl, max_limit_mdl, status " +
                         "FROM cash_desks WHERE (UPPER(cash_desk_name) LIKE ? OR UPPER(address) LIKE ? OR UPPER(COALESCE(phone, '')) LIKE ?)");
-        if (status != null) {
+        if (ValidationService.isNotBlank(status)) {
             sql.append(" AND status=?");
         }
         sql.append(" ORDER BY cash_desk_id");
@@ -225,8 +228,8 @@ public class CashDeskController {
             statement.setString(1, search);
             statement.setString(2, search);
             statement.setString(3, search);
-            if (status != null) {
-                statement.setString(4, status.getDbValue());
+            if (ValidationService.isNotBlank(status)) {
+                statement.setString(4, status);
             }
 
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -301,14 +304,16 @@ public class CashDeskController {
         idBadge.getStyleClass().add("cash-desk-id-badge");
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        Button editButton = new Button("✎");
+        Button editButton = new Button();
+        IconUtil.setIconOnly(editButton, "fas-pen");
         editButton.getStyleClass().addAll("icon-action-button", "ghost-button");
         editButton.setOnAction(event -> {
             selectCashDesk(desk);
             updateCashDesk();
             event.consume();
         });
-        Button deleteButton = new Button("×");
+        Button deleteButton = new Button();
+        IconUtil.setIconOnly(deleteButton, "fas-trash");
         deleteButton.getStyleClass().addAll("icon-action-button", "danger-ghost-button");
         deleteButton.setOnAction(event -> {
             selectCashDesk(desk);
@@ -385,31 +390,51 @@ public class CashDeskController {
     }
 
     private void updateSummary() {
-        cashDesksTotalLabel.setText(String.valueOf(displayedCashDesks.size()));
-        selectedCashDeskLabel.setText(selectedCashDesk == null
-                ? "—"
-                : "#" + selectedCashDesk.getId() + " · " + selectedCashDesk.getName());
+        if (cashDesksTotalLabel != null) {
+            cashDesksTotalLabel.setText(String.valueOf(displayedCashDesks.size()));
+        }
+        if (selectedCashDeskLabel != null) {
+            selectedCashDeskLabel.setText(selectedCashDesk == null
+                    ? "—"
+                    : "#" + selectedCashDesk.getId() + " · " + selectedCashDesk.getName());
+        }
     }
 
     private void updateMeta(String text) {
-        cashDeskMetaLabel.setText(text);
+        if (cashDeskMetaLabel != null) {
+            cashDeskMetaLabel.setText(text);
+        }
         updateSummary();
     }
 
-    private String buildMetaText(String searchText, CashDeskStatus status) {
+    private String buildMetaText(String searchText, String status) {
         boolean hasSearch = !searchText.isBlank();
-        boolean hasStatus = status != null;
+        boolean hasStatus = ValidationService.isNotBlank(status);
 
         if (!hasSearch && !hasStatus) {
             return "Все кассы в системе";
         }
         if (hasSearch && hasStatus) {
-            return "Запрос “" + searchText + "”, статус: " + status.getDbValue();
+            return "Запрос “" + searchText + "”, статус: " + status;
         }
         if (hasSearch) {
             return "Результаты по запросу: “" + searchText + "”";
         }
-        return "Статус: " + status.getDbValue();
+        return "Статус: " + status;
+    }
+
+    private java.util.List<String> loadStatusFilterOptions() {
+        java.util.List<String> options = new java.util.ArrayList<>();
+        options.add(ALL_FILTER);
+        for (CashDeskStatus status : CashDeskStatus.values()) {
+            options.add(status.getDbValue());
+        }
+        return options;
+    }
+
+    private String selectedStatusFilter() {
+        String value = filterStatusBox.getValue();
+        return ALL_FILTER.equals(value) ? "" : value;
     }
 
     private String formatStatus(String status) {
@@ -465,7 +490,8 @@ public class CashDeskController {
         dialog.getDialogPane().getStyleClass().add("form-dialog");
 
         ButtonType saveButton = new ButtonType("Сохранить", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(saveButton, ButtonType.CANCEL);
+        ButtonType cancelButton = new ButtonType("Отмена", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButton, cancelButton);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);

@@ -11,6 +11,7 @@
 <?import javafx.scene.layout.TilePane?>
 <?import javafx.scene.layout.VBox?>
 <?import org.controlsfx.control.SearchableComboBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox spacing="18" styleClass="page" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.currencyexchange.controller.CashDeskController">
@@ -23,33 +24,25 @@
         <Region HBox.hgrow="ALWAYS"/>
     </HBox>
 
-    <HBox spacing="16">
-        <VBox styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
-            <Label text="Всего касс" styleClass="mini-stat-title"/>
-            <Label fx:id="cashDesksTotalLabel" text="0" styleClass="mini-stat-value"/>
-        </VBox>
-        <VBox styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
-            <Label text="Выбрана" styleClass="mini-stat-title"/>
-            <Label fx:id="selectedCashDeskLabel" text="—" styleClass="mini-stat-description" wrapText="true"/>
-        </VBox>
-        <VBox styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
-            <Label text="🔎 Контекст поиска" styleClass="mini-stat-title"/>
-            <Label fx:id="cashDeskMetaLabel" text="Все кассы в системе" styleClass="mini-stat-description" wrapText="true"/>
-        </VBox>
-    </HBox>
-
     <VBox styleClass="section-card" VBox.vgrow="ALWAYS">
         <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
-            <Button text="＋ Добавить" onAction="#addCashDesk" styleClass="primary-button"/>
-            <Button text="✎ Изменить" onAction="#updateCashDesk" styleClass="secondary-button"/>
-            <Button text="Удалить" onAction="#deleteCashDesk" styleClass="danger-button"/>
-            <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
+            <Button text="Добавить" onAction="#addCashDesk" styleClass="primary-button">
+                <graphic><FontIcon iconLiteral="fas-plus" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
+            <Button text="Изменить" onAction="#updateCashDesk" styleClass="secondary-button">
+                <graphic><FontIcon iconLiteral="fas-pen" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
+            <Button text="Удалить" onAction="#deleteCashDesk" styleClass="danger-button">
+                <graphic><FontIcon iconLiteral="fas-trash" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
             <Region HBox.hgrow="ALWAYS"/>
             <StackPane prefWidth="250">
                 <TextField fx:id="searchField" promptText="Поиск по названию, адресу или телефону" prefWidth="250" styleClass="search-field modern-search-field"/>
-                <Button fx:id="clearSearchButton" text="×" onAction="#clearSearch" visible="false" managed="false" focusTraversable="false" StackPane.alignment="CENTER_RIGHT" styleClass="clear-button"/>
+                <Button fx:id="clearSearchButton" onAction="#clearSearch" visible="false" managed="false" focusTraversable="false" StackPane.alignment="CENTER_RIGHT" styleClass="clear-button">
+                    <graphic><FontIcon iconLiteral="fas-times" iconSize="12" styleClass="app-icon"/></graphic>
+                </Button>
             </StackPane>
-            <SearchableComboBox fx:id="filterStatusBox" prefWidth="145" promptText="Статус"/>
+            <SearchableComboBox fx:id="filterStatusBox" prefWidth="145" promptText="Все"/>
         </HBox>
 
         <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS" styleClass="content-scroll">

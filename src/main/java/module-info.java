@@ -6,6 +6,8 @@ module com.example.currencyexchange {
     requires java.xml;
     requires org.controlsfx.controls;
     requires atlantafx.base;
+    requires org.kordamp.ikonli.javafx;
+    requires org.kordamp.ikonli.fontawesome5;
 
     opens com.example.currencyexchange to javafx.fxml;
     opens com.example.currencyexchange.controller to javafx.fxml;

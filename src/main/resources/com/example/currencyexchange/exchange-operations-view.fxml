@@ -9,6 +9,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox spacing="18" styleClass="page" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.currencyexchange.controller.ExchangeOperationController">
@@ -23,25 +24,36 @@
 
     <HBox spacing="16">
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="💸 Реальные обмены" styleClass="mini-stat-title"/>
+            <Label text="Реальные обмены" styleClass="mini-stat-title">
+                <graphic><FontIcon iconLiteral="fas-money-bill-wave" iconSize="13" styleClass="app-icon"/></graphic>
+            </Label>
             <Label text="Экран содержит ключевые суммы, курс и полученную валюту" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="Фильтр по дате" styleClass="mini-stat-title"/>
+            <Label text="Фильтр по дате" styleClass="mini-stat-title">
+                <graphic><FontIcon iconLiteral="fas-calendar-alt" iconSize="13" styleClass="app-icon"/></graphic>
+            </Label>
             <Label text="Можно быстро отследить операции за конкретный день" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="🧾 Журнал операций" styleClass="mini-stat-title"/>
+            <Label text="Журнал операций" styleClass="mini-stat-title">
+                <graphic><FontIcon iconLiteral="fas-clipboard-list" iconSize="13" styleClass="app-icon"/></graphic>
+            </Label>
             <Label text="Все записи отсортированы по дате, самые свежие сверху" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
     </HBox>
 
     <VBox styleClass="section-card" spacing="0" VBox.vgrow="ALWAYS">
         <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
-            <Button text="＋ Добавить" onAction="#addOperation" styleClass="primary-button"/>
-            <Button text="✎ Изменить" onAction="#updateOperation" styleClass="secondary-button"/>
-            <Button text="Удалить" onAction="#deleteOperation" styleClass="danger-button"/>
-            <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
+            <Button text="Добавить" onAction="#addOperation" styleClass="primary-button">
+                <graphic><FontIcon iconLiteral="fas-plus" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
+            <Button text="Изменить" onAction="#updateOperation" styleClass="secondary-button">
+                <graphic><FontIcon iconLiteral="fas-pen" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
+            <Button text="Удалить" onAction="#deleteOperation" styleClass="danger-button">
+                <graphic><FontIcon iconLiteral="fas-trash" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
             <Region HBox.hgrow="ALWAYS"/>
             <VBox spacing="4">
                 <Label text="Дата" styleClass="filter-label"/>

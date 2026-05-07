@@ -4,12 +4,12 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import org.controlsfx.control.SearchableComboBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox spacing="18" styleClass="page" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.currencyexchange.controller.ExchangeRateController">
@@ -23,46 +23,43 @@
         <Region HBox.hgrow="ALWAYS"/>
     </HBox>
 
-    <HBox spacing="16">
-        <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="📌 Управляйте покупкой и продажей" styleClass="mini-stat-title"/>
-            <Label text="Экран подходит для ежедневного обновления курса" styleClass="mini-stat-description" wrapText="true"/>
-        </VBox>
-        <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="🔎 Быстрый фильтр по валюте" styleClass="mini-stat-title"/>
-            <Label text="Выберите валюту из списка и дату, чтобы мгновенно отфильтровать таблицу" styleClass="mini-stat-description" wrapText="true"/>
-        </VBox>
-        <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="История изменений" styleClass="mini-stat-title"/>
-            <Label text="Курсы выводятся в порядке последних дат" styleClass="mini-stat-description" wrapText="true"/>
-        </VBox>
-    </HBox>
-
     <VBox styleClass="section-card" spacing="0" VBox.vgrow="ALWAYS">
         <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
-            <Button text="＋ Добавить" onAction="#addRate" styleClass="primary-button"/>
-            <Button text="✎ Изменить" onAction="#updateRate" styleClass="secondary-button"/>
-            <Button text="Удалить" onAction="#deleteRate" styleClass="danger-button"/>
-            <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
-            <Button text="BNM" onAction="#importBnmRates" styleClass="secondary-button"/>
+            <Button text="Добавить" onAction="#addRate" styleClass="primary-button">
+                <graphic><FontIcon iconLiteral="fas-plus" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
+            <Button text="Изменить" onAction="#updateRate" styleClass="secondary-button">
+                <graphic><FontIcon iconLiteral="fas-pen" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
+            <Button text="Удалить" onAction="#deleteRate" styleClass="danger-button">
+                <graphic><FontIcon iconLiteral="fas-trash" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
+            <Button text="BNM" onAction="#importBnmRates" styleClass="secondary-button">
+                <graphic><FontIcon iconLiteral="fas-cloud-download-alt" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
             <Region HBox.hgrow="ALWAYS"/>
             <VBox spacing="4">
                 <Label text="Валюта" styleClass="filter-label"/>
-                <SearchableComboBox fx:id="filterCurrencyBox" prefWidth="220" promptText="Все валюты"/>
+                <SearchableComboBox fx:id="filterCurrencyBox" prefWidth="220" promptText="Все"/>
             </VBox>
             <VBox spacing="4">
                 <Label text="Дата" styleClass="filter-label"/>
                 <DatePicker fx:id="filterDatePicker" prefWidth="170" styleClass="flat-date-picker"/>
             </VBox>
         </HBox>
-        <TableView fx:id="rateTable" VBox.vgrow="ALWAYS" styleClass="modern-table">
-            <columns>
-                <TableColumn fx:id="idColumn" text="ID курса" prefWidth="70" visible="false"/>
-                <TableColumn fx:id="currencyIdColumn" text="Валюта" prefWidth="230"/>
-                <TableColumn fx:id="dateColumn" text="Дата" prefWidth="170"/>
-                <TableColumn fx:id="buyRateColumn" text="Покупка" prefWidth="170"/>
-                <TableColumn fx:id="sellRateColumn" text="Продажа" prefWidth="170"/>
-            </columns>
-        </TableView>
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS" styleClass="content-scroll">
+            <content>
+                <VBox spacing="0" styleClass="rate-groups-scroll-content">
+                    <VBox fx:id="rateDateGroupsContainer" spacing="12" styleClass="rate-groups-list">
+                        <padding><Insets top="14" right="14" bottom="14" left="14"/></padding>
+                    </VBox>
+                    <HBox alignment="CENTER" styleClass="load-more-bar">
+                        <Button fx:id="loadMoreButton" text="Показать еще" onAction="#loadMoreRates" styleClass="secondary-button">
+                            <graphic><FontIcon iconLiteral="fas-chevron-down" iconSize="12" styleClass="app-icon"/></graphic>
+                        </Button>
+                    </HBox>
+                </VBox>
+            </content>
+        </ScrollPane>
     </VBox>
 </VBox>

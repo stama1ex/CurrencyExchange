@@ -42,6 +42,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class IncassationController {
+    private static final String ALL_FILTER = "Все";
+
     @FXML
     private TableView<Incassation> incassationTable;
     @FXML
@@ -62,7 +64,7 @@ public class IncassationController {
     private TableColumn<Incassation, String> noteColumn;
 
     @FXML
-    private SearchableComboBox<IncassationStatus> filterStatusBox;
+    private SearchableComboBox<String> filterStatusBox;
 
     private final ObservableList<Incassation> data = FXCollections.observableArrayList();
 
@@ -124,8 +126,8 @@ public class IncassationController {
             }
         });
 
-        filterStatusBox.getItems().add(null);
-        filterStatusBox.getItems().addAll(IncassationStatus.values());
+        filterStatusBox.getItems().setAll(loadStatusFilterOptions());
+        filterStatusBox.getSelectionModel().selectFirst();
         filterStatusBox.valueProperty().addListener((obs, oldVal, newVal) -> filterByStatus());
 
         incassationTable.setItems(data);
@@ -318,7 +320,8 @@ public class IncassationController {
 
     @FXML
     private void filterByStatus() {
-        if (filterStatusBox.getValue() == null) {
+        String selectedStatus = selectedStatusFilter();
+        if (!ValidationService.isNotBlank(selectedStatus)) {
             refreshTable();
             return;
         }
@@ -329,7 +332,7 @@ public class IncassationController {
 
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, filterStatusBox.getValue().getDbValue());
+            statement.setString(1, selectedStatus);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     data.add(new Incassation(
@@ -349,6 +352,20 @@ public class IncassationController {
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось применить фильтр: " + e.getMessage());
         }
+    }
+
+    private List<String> loadStatusFilterOptions() {
+        List<String> options = new ArrayList<>();
+        options.add(ALL_FILTER);
+        for (IncassationStatus status : IncassationStatus.values()) {
+            options.add(status.getDbValue());
+        }
+        return options;
+    }
+
+    private String selectedStatusFilter() {
+        String value = filterStatusBox.getValue();
+        return ALL_FILTER.equals(value) ? "" : value;
     }
 
     private String getBalanceColumnName(String currencyCode) {
@@ -436,7 +453,8 @@ public class IncassationController {
         dialog.getDialogPane().getStyleClass().add("form-dialog");
 
         ButtonType saveButton = new ButtonType("Сохранить", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(saveButton, ButtonType.CANCEL);
+        ButtonType cancelButton = new ButtonType("Отмена", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButton, cancelButton);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);

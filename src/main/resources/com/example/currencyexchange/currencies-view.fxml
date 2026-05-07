@@ -10,6 +10,7 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.TilePane?>
 <?import javafx.scene.layout.VBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox spacing="18" styleClass="page" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.currencyexchange.controller.CurrencyController">
@@ -23,31 +24,23 @@
         <Region HBox.hgrow="ALWAYS"/>
     </HBox>
 
-    <HBox spacing="16">
-        <VBox styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
-            <Label text="Всего валют" styleClass="mini-stat-title"/>
-            <Label fx:id="currenciesTotalLabel" text="0" styleClass="mini-stat-value"/>
-        </VBox>
-        <VBox styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
-            <Label text="Выбрана" styleClass="mini-stat-title"/>
-            <Label fx:id="selectedCurrencyLabel" text="—" styleClass="mini-stat-description" wrapText="true"/>
-        </VBox>
-        <VBox styleClass="mini-stat-card" HBox.hgrow="ALWAYS">
-            <Label text="🔎 Контекст поиска" styleClass="mini-stat-title"/>
-            <Label fx:id="searchMetaLabel" text="Все валюты в системе" styleClass="mini-stat-description" wrapText="true"/>
-        </VBox>
-    </HBox>
-
     <VBox styleClass="section-card" VBox.vgrow="ALWAYS">
         <HBox styleClass="toolbar modern-toolbar" spacing="10" alignment="CENTER_LEFT">
-            <Button text="＋ Добавить" onAction="#addCurrency" styleClass="primary-button"/>
-            <Button text="✎ Изменить" onAction="#updateCurrency" styleClass="secondary-button"/>
-            <Button text="Удалить" onAction="#deleteCurrency" styleClass="danger-button"/>
-            <Button text="↻ Обновить" onAction="#refreshTable" styleClass="secondary-button"/>
+            <Button text="Добавить" onAction="#addCurrency" styleClass="primary-button">
+                <graphic><FontIcon iconLiteral="fas-plus" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
+            <Button text="Изменить" onAction="#updateCurrency" styleClass="secondary-button">
+                <graphic><FontIcon iconLiteral="fas-pen" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
+            <Button text="Удалить" onAction="#deleteCurrency" styleClass="danger-button">
+                <graphic><FontIcon iconLiteral="fas-trash" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
             <Region HBox.hgrow="ALWAYS"/>
             <StackPane prefWidth="320">
                 <TextField fx:id="searchField" promptText="Поиск по коду или названию валюты" onAction="#searchCurrencies" prefWidth="320" styleClass="search-field modern-search-field"/>
-                <Button fx:id="clearSearchButton" text="×" onAction="#clearSearch" visible="false" managed="false" focusTraversable="false" StackPane.alignment="CENTER_RIGHT" styleClass="clear-button"/>
+                <Button fx:id="clearSearchButton" onAction="#clearSearch" visible="false" managed="false" focusTraversable="false" StackPane.alignment="CENTER_RIGHT" styleClass="clear-button">
+                    <graphic><FontIcon iconLiteral="fas-times" iconSize="12" styleClass="app-icon"/></graphic>
+                </Button>
             </StackPane>
         </HBox>
 

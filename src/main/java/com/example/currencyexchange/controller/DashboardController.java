@@ -1,7 +1,10 @@
 package com.example.currencyexchange.controller;
 
 import com.example.currencyexchange.DatabaseConnection;
+import com.example.currencyexchange.service.ExchangeRateAutoUpdateService;
 import com.example.currencyexchange.util.AlertUtil;
+import com.example.currencyexchange.util.IconUtil;
+import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -12,17 +15,24 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
 public class DashboardController {
+    private static final ZoneId APP_ZONE = ZoneId.of("Europe/Chisinau");
+
     @FXML
     private Label currenciesCount;
     @FXML
@@ -37,6 +47,7 @@ public class DashboardController {
     private PieChart recommendationChart;
     @FXML
     private VBox alertsContainer;
+    private PauseTransition dailyRefresh;
 
     private static final DateTimeFormatter SHORT_DATE = DateTimeFormatter.ofPattern("dd.MM");
 
@@ -52,6 +63,43 @@ public class DashboardController {
             recommendationChart.setAnimated(false);
         }
         refreshStats();
+        installDailyRefresh();
+    }
+
+    private void installDailyRefresh() {
+        if (operationsChart == null) {
+            return;
+        }
+        operationsChart.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene == null) {
+                stopDailyRefresh();
+            } else {
+                scheduleNextDailyRefresh();
+            }
+        });
+        scheduleNextDailyRefresh();
+    }
+
+    private void scheduleNextDailyRefresh() {
+        stopDailyRefresh();
+
+        ZonedDateTime now = ZonedDateTime.now(APP_ZONE);
+        ZonedDateTime nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay(APP_ZONE).plusSeconds(1);
+        long delayMillis = Math.max(1_000, java.time.Duration.between(now, nextMidnight).toMillis());
+
+        dailyRefresh = new PauseTransition(Duration.millis(delayMillis));
+        dailyRefresh.setOnFinished(event -> {
+            refreshStats();
+            scheduleNextDailyRefresh();
+        });
+        dailyRefresh.play();
+    }
+
+    private void stopDailyRefresh() {
+        if (dailyRefresh != null) {
+            dailyRefresh.stop();
+            dailyRefresh = null;
+        }
     }
 
     public void refreshStats() {
@@ -85,26 +133,29 @@ public class DashboardController {
 
         operationsChart.setTitle(null);
         XYChart.Series<String, Number> series = new XYChart.Series<>();
-        String sql = "WITH bounds AS ( " +
-                "SELECT COALESCE(MAX(operation_date), CURRENT_DATE)::date AS end_date FROM exchange_operations " +
-                "), days AS ( " +
-                "SELECT generate_series(end_date - INTERVAL '6 day', end_date, INTERVAL '1 day')::date AS d FROM bounds " +
+        LocalDate today = ExchangeRateAutoUpdateService.todayInAppZone();
+        String sql = "WITH days AS ( " +
+                "SELECT generate_series(?::date - INTERVAL '6 day', ?::date, INTERVAL '1 day')::date AS d " +
                 ") " +
                 "SELECT days.d, COUNT(eo.operation_id) AS total " +
                 "FROM days " +
                 "LEFT JOIN exchange_operations eo ON eo.operation_date = days.d " +
                 "GROUP BY days.d ORDER BY days.d";
 
-        try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
-            int totalOperations = 0;
-            while (rs.next()) {
-                String label = rs.getDate("d").toLocalDate().format(SHORT_DATE);
-                int total = rs.getInt("total");
-                totalOperations += total;
-                series.getData().add(new XYChart.Data<>(label, total));
-            }
-            if (totalOperations == 0) {
-                operationsChart.setTitle("Нет операций для отображения");
+        try (PreparedStatement st = conn.prepareStatement(sql)) {
+            st.setDate(1, Date.valueOf(today));
+            st.setDate(2, Date.valueOf(today));
+            try (ResultSet rs = st.executeQuery()) {
+                int totalOperations = 0;
+                while (rs.next()) {
+                    String label = rs.getDate("d").toLocalDate().format(SHORT_DATE);
+                    int total = rs.getInt("total");
+                    totalOperations += total;
+                    series.getData().add(new XYChart.Data<>(label, total));
+                }
+                if (totalOperations == 0) {
+                    operationsChart.setTitle("Нет операций для отображения");
+                }
             }
         } catch (SQLException e) {
             operationsChart.setTitle("Не удалось загрузить динамику операций");
@@ -231,7 +282,8 @@ public class DashboardController {
         root.setPadding(new Insets(14, 16, 14, 16));
         root.getStyleClass().add("attention-card");
 
-        Label icon = new Label("К");
+        Label icon = new Label();
+        IconUtil.setIconOnly(icon, "fas-cash-register");
         icon.getStyleClass().add("attention-icon");
 
         VBox textBox = new VBox(4);
@@ -246,7 +298,7 @@ public class DashboardController {
 
         VBox right = new VBox(8);
         right.setAlignment(Pos.CENTER_RIGHT);
-        Label amount = new Label(String.format("%.2f MDL", balance));
+        Label amount = new Label(String.format("≈ %.2f MDL", balance));
         amount.getStyleClass().add("attention-balance");
         Label badge = new Label(recommendation == null || recommendation.isBlank() ? "Норма" : recommendation);
         badge.getStyleClass().addAll("status-pill", recommendationStyleClass(recommendation));

@@ -4,6 +4,8 @@ import com.example.currencyexchange.DatabaseConnection;
 import com.example.currencyexchange.model.Currency;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
+import com.example.currencyexchange.util.CurrencyFlagUtil;
+import com.example.currencyexchange.util.IconUtil;
 import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -226,21 +228,23 @@ public class CurrencyController {
         codeBadge.getStyleClass().add("currency-code-badge");
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        Button editButton = new Button("✎");
+        Button editButton = new Button();
+        IconUtil.setIconOnly(editButton, "fas-pen");
         editButton.getStyleClass().addAll("icon-action-button", "ghost-button");
         editButton.setOnAction(event -> {
             selectCurrency(currency);
             updateCurrency();
             event.consume();
         });
-        Button deleteButton = new Button("×");
+        Button deleteButton = new Button();
+        IconUtil.setIconOnly(deleteButton, "fas-trash");
         deleteButton.getStyleClass().addAll("icon-action-button", "danger-ghost-button");
         deleteButton.setOnAction(event -> {
             selectCurrency(currency);
             deleteCurrency();
             event.consume();
         });
-        top.getChildren().addAll(codeBadge, spacer, editButton, deleteButton);
+        top.getChildren().addAll(CurrencyFlagUtil.createFlag(currency.getCode()), codeBadge, spacer, editButton, deleteButton);
 
         VBox body = new VBox(6);
         Label title = new Label(currency.getName());
@@ -252,9 +256,11 @@ public class CurrencyController {
 
         HBox footer = new HBox(8);
         footer.setAlignment(Pos.CENTER_LEFT);
-        Label chip1 = new Label("💹 Доступна");
+        Label chip1 = new Label("Доступна");
+        IconUtil.setIcon(chip1, "fas-check-circle", 12);
         chip1.getStyleClass().add("soft-chip");
-        Label chip2 = new Label("🌍 Международная");
+        Label chip2 = new Label("Международная");
+        IconUtil.setIcon(chip2, "fas-globe", 12);
         chip2.getStyleClass().add("soft-chip");
         footer.getChildren().addAll(chip1, chip2);
 
@@ -269,14 +275,20 @@ public class CurrencyController {
     }
 
     private void updateSummary() {
-        currenciesTotalLabel.setText(String.valueOf(displayedCurrencies.size()));
-        selectedCurrencyLabel.setText(selectedCurrency == null
-                ? "—"
-                : selectedCurrency.getCode() + " · " + selectedCurrency.getName());
+        if (currenciesTotalLabel != null) {
+            currenciesTotalLabel.setText(String.valueOf(displayedCurrencies.size()));
+        }
+        if (selectedCurrencyLabel != null) {
+            selectedCurrencyLabel.setText(selectedCurrency == null
+                    ? "—"
+                    : selectedCurrency.getCode() + " · " + selectedCurrency.getName());
+        }
     }
 
     private void updateMeta(String text) {
-        searchMetaLabel.setText(text);
+        if (searchMetaLabel != null) {
+            searchMetaLabel.setText(text);
+        }
         updateSummary();
     }
 
@@ -298,7 +310,8 @@ public class CurrencyController {
         dialog.getDialogPane().getStyleClass().add("form-dialog");
 
         ButtonType saveButton = new ButtonType("Сохранить", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(saveButton, ButtonType.CANCEL);
+        ButtonType cancelButton = new ButtonType("Отмена", ButtonBar.ButtonData.CANCEL_CLOSE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButton, cancelButton);
 
         GridPane grid = new GridPane();
         grid.setHgap(10);

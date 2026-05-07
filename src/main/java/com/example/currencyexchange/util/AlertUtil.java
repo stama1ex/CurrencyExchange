@@ -64,7 +64,8 @@ public final class AlertUtil {
             toastHost.getChildren().remove(toastHost.getChildren().size() - 1);
         }
 
-        Label icon = new Label(type.icon);
+        Label icon = new Label();
+        IconUtil.setIconOnly(icon, type.iconLiteral);
         icon.getStyleClass().addAll("app-toast-icon", type.iconStyleClass);
 
         Label titleLabel = new Label(title);
@@ -80,7 +81,8 @@ public final class AlertUtil {
         copy.setMaxWidth(Double.MAX_VALUE);
         HBox.setHgrow(copy, Priority.ALWAYS);
 
-        Button closeButton = new Button("x");
+        Button closeButton = new Button();
+        IconUtil.setIconOnly(closeButton, "fas-times");
         closeButton.getStyleClass().add("app-toast-close");
 
         HBox toast = new HBox(10, icon, copy, closeButton);
@@ -168,17 +170,17 @@ public final class AlertUtil {
     }
 
     private enum Type {
-        INFO("i", "app-toast-info", "app-toast-icon-info", 4),
-        WARNING("!", "app-toast-warning", "app-toast-icon-warning", 5),
-        ERROR("x", "app-toast-error", "app-toast-icon-error", 7);
+        INFO("fas-info", "app-toast-info", "app-toast-icon-info", 4),
+        WARNING("fas-exclamation-triangle", "app-toast-warning", "app-toast-icon-warning", 5),
+        ERROR("fas-times-circle", "app-toast-error", "app-toast-icon-error", 7);
 
-        private final String icon;
+        private final String iconLiteral;
         private final String toastStyleClass;
         private final String iconStyleClass;
         private final int visibleSeconds;
 
-        Type(String icon, String toastStyleClass, String iconStyleClass, int visibleSeconds) {
-            this.icon = icon;
+        Type(String iconLiteral, String toastStyleClass, String iconStyleClass, int visibleSeconds) {
+            this.iconLiteral = iconLiteral;
             this.toastStyleClass = toastStyleClass;
             this.iconStyleClass = iconStyleClass;
             this.visibleSeconds = visibleSeconds;

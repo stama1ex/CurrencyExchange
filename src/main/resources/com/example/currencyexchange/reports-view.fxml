@@ -9,6 +9,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import org.controlsfx.control.CheckComboBox?>
 <?import org.controlsfx.control.SearchableComboBox?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <VBox spacing="18" styleClass="page" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.example.currencyexchange.controller.ReportController">
@@ -23,11 +24,15 @@
 
     <HBox spacing="16">
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="Готовые аналитические представления" styleClass="mini-stat-title"/>
+            <Label text="Готовые аналитические представления" styleClass="mini-stat-title">
+                <graphic><FontIcon iconLiteral="fas-chart-pie" iconSize="13" styleClass="app-icon"/></graphic>
+            </Label>
             <Label text="Выберите нужный отчет из списка и просматривайте данные прямо в интерфейсе" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
         <VBox styleClass="mini-info-card" HBox.hgrow="ALWAYS">
-            <Label text="⬇ Экспорт CSV" styleClass="mini-stat-title"/>
+            <Label text="Экспорт CSV" styleClass="mini-stat-title">
+                <graphic><FontIcon iconLiteral="fas-file-export" iconSize="13" styleClass="app-icon"/></graphic>
+            </Label>
             <Label text="Любой отчет можно сохранить для последующей передачи или анализа" styleClass="mini-stat-description" wrapText="true"/>
         </VBox>
     </HBox>
@@ -39,7 +44,9 @@
             <Label text="Колонки" styleClass="filter-label"/>
             <CheckComboBox fx:id="columnSelectorBox" prefWidth="260"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <Button text="⬇ Экспорт CSV" onAction="#exportCsv" styleClass="primary-button"/>
+            <Button text="Экспорт CSV" onAction="#exportCsv" styleClass="primary-button">
+                <graphic><FontIcon iconLiteral="fas-file-export" iconSize="12" styleClass="app-icon"/></graphic>
+            </Button>
         </HBox>
         <TableView fx:id="reportTable" VBox.vgrow="ALWAYS" styleClass="modern-table"/>
     </VBox>

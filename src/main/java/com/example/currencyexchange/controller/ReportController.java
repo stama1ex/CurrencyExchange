@@ -40,7 +40,7 @@ public class ReportController {
         // Регистрируем этот контроллер в MainController для уведомлений об обновлениях
         MainController.setReportController(this);
 
-        columnSelectorBox.setTitle("Колонки");
+        columnSelectorBox.setTitle("Все");
         columnSelectorBox.setShowCheckedCount(true);
         columnSelectorBox.getCheckModel().getCheckedItems()
                 .addListener((ListChangeListener<String>) change -> applyColumnSelection());
