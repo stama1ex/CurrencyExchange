@@ -13,6 +13,7 @@ import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
@@ -26,6 +27,8 @@ import org.controlsfx.validation.Severity;
 import org.controlsfx.validation.ValidationSupport;
 import org.controlsfx.validation.Validator;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -37,6 +40,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class ExchangeOperationController {
+    private static final String BASE_CURRENCY_CODE = "MDL";
+
     @FXML
     private TableView<ExchangeOperation> operationTable;
     @FXML
@@ -397,6 +402,104 @@ public class ExchangeOperationController {
         }
     }
 
+    private void recalculateAmountTo(TextField amountFromInput, TextField rateInput, TextField amountToInput) {
+        try {
+            double amountFrom = Double.parseDouble(amountFromInput.getText().trim());
+            double rate = Double.parseDouble(rateInput.getText().trim());
+            if (!ValidationService.isPositive(amountFrom) || !ValidationService.isPositive(rate)) {
+                amountToInput.clear();
+                return;
+            }
+
+            BigDecimal result = BigDecimal.valueOf(amountFrom)
+                    .multiply(BigDecimal.valueOf(rate))
+                    .setScale(2, RoundingMode.HALF_UP);
+            amountToInput.setText(result.stripTrailingZeros().toPlainString());
+        } catch (NumberFormatException e) {
+            amountToInput.clear();
+        }
+    }
+
+    private void applyLatestRate(SearchableComboBox<Currency> fromInput,
+                                 SearchableComboBox<Currency> toInput,
+                                 TextField rateInput) {
+        Currency fromCurrency = fromInput.getValue();
+        Currency toCurrency = toInput.getValue();
+        if (fromCurrency == null || toCurrency == null) {
+            rateInput.clear();
+            return;
+        }
+
+        String fromCode = normalizeCurrencyCode(fromCurrency.getCode());
+        String toCode = normalizeCurrencyCode(toCurrency.getCode());
+        if (fromCode.equals(toCode)) {
+            rateInput.clear();
+            return;
+        }
+
+        try {
+            double latestRate = loadLatestCrossRate(fromCode, toCode);
+            rateInput.setText(formatNumber(latestRate, 6));
+        } catch (SQLException e) {
+            rateInput.clear();
+            AlertUtil.error("Курс валют", "Не удалось загрузить последний курс: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            rateInput.clear();
+            AlertUtil.warning("Курс валют", e.getMessage());
+        }
+    }
+
+    private double loadLatestCrossRate(String fromCode, String toCode) throws SQLException {
+        if (BASE_CURRENCY_CODE.equals(fromCode)) {
+            LatestRate toRate = loadLatestRate(toCode);
+            return 1 / toRate.sellRateMdl();
+        }
+        if (BASE_CURRENCY_CODE.equals(toCode)) {
+            LatestRate fromRate = loadLatestRate(fromCode);
+            return fromRate.buyRateMdl();
+        }
+
+        LatestRate fromRate = loadLatestRate(fromCode);
+        LatestRate toRate = loadLatestRate(toCode);
+        return fromRate.buyRateMdl() / toRate.sellRateMdl();
+    }
+
+    private LatestRate loadLatestRate(String currencyCode) throws SQLException {
+        String normalizedCode = normalizeCurrencyCode(currencyCode);
+        if (BASE_CURRENCY_CODE.equals(normalizedCode)) {
+            return new LatestRate(1, 1);
+        }
+
+        String sql = "SELECT buy_rate_mdl, sell_rate_mdl FROM exchange_rates WHERE currency_code=? ORDER BY rate_date DESC, rate_id DESC LIMIT 1";
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, normalizedCode);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    throw new IllegalArgumentException("Для валюты " + normalizedCode + " нет сохраненного курса.");
+                }
+
+                double buyRate = resultSet.getDouble("buy_rate_mdl");
+                double sellRate = resultSet.getDouble("sell_rate_mdl");
+                if (!ValidationService.isPositive(buyRate) || !ValidationService.isPositive(sellRate)) {
+                    throw new IllegalArgumentException("Последний курс для " + normalizedCode + " должен быть больше 0.");
+                }
+                return new LatestRate(buyRate, sellRate);
+            }
+        }
+    }
+
+    private String normalizeCurrencyCode(String currencyCode) {
+        return currencyCode == null ? "" : currencyCode.trim().toUpperCase();
+    }
+
+    private String formatNumber(double value, int scale) {
+        return BigDecimal.valueOf(value)
+                .setScale(scale, RoundingMode.HALF_UP)
+                .stripTrailingZeros()
+                .toPlainString();
+    }
+
     private Optional<OperationForm> showOperationDialog(ExchangeOperation operation) {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle(operation == null ? "Добавить операцию" : "Изменить операцию");
@@ -420,6 +523,35 @@ public class ExchangeOperationController {
         TextField amountFromInput = new TextField(operation == null ? "" : String.valueOf(operation.getAmountFrom()));
         TextField rateInput = new TextField(operation == null ? "" : String.valueOf(operation.getRate()));
         TextField amountToInput = new TextField(operation == null ? "" : String.valueOf(operation.getAmountTo()));
+        amountToInput.setEditable(false);
+        amountToInput.setFocusTraversable(false);
+        CheckBox latestRateInput = new CheckBox("Использовать последний курс");
+
+        Runnable updateLatestRate = () -> {
+            if (latestRateInput.isSelected()) {
+                applyLatestRate(fromInput, toInput, rateInput);
+            }
+        };
+        Runnable updateAmountTo = () -> recalculateAmountTo(amountFromInput, rateInput, amountToInput);
+
+        latestRateInput.selectedProperty().addListener((obs, wasSelected, isSelected) -> {
+            rateInput.setEditable(!isSelected);
+            rateInput.setFocusTraversable(!isSelected);
+            if (isSelected) {
+                applyLatestRate(fromInput, toInput, rateInput);
+            }
+            updateAmountTo.run();
+        });
+        fromInput.valueProperty().addListener((obs, oldVal, newVal) -> {
+            updateLatestRate.run();
+            updateAmountTo.run();
+        });
+        toInput.valueProperty().addListener((obs, oldVal, newVal) -> {
+            updateLatestRate.run();
+            updateAmountTo.run();
+        });
+        amountFromInput.textProperty().addListener((obs, oldVal, newVal) -> updateAmountTo.run());
+        rateInput.textProperty().addListener((obs, oldVal, newVal) -> updateAmountTo.run());
 
         if (operation != null) {
             cashDeskInput.getSelectionModel().select(cashDeskInput.getItems().stream()
@@ -443,10 +575,12 @@ public class ExchangeOperationController {
         grid.add(toInput, 1, 3);
         grid.add(new Label("Сумма из:"), 0, 4);
         grid.add(amountFromInput, 1, 4);
-        grid.add(new Label("Курс:"), 0, 5);
-        grid.add(rateInput, 1, 5);
-        grid.add(new Label("Сумма в:"), 0, 6);
-        grid.add(amountToInput, 1, 6);
+        grid.add(new Label("Режим курса:"), 0, 5);
+        grid.add(latestRateInput, 1, 5);
+        grid.add(new Label("Курс:"), 0, 6);
+        grid.add(rateInput, 1, 6);
+        grid.add(new Label("Сумма в:"), 0, 7);
+        grid.add(amountToInput, 1, 7);
 
         dialog.getDialogPane().setContent(grid);
         ValidationSupport validationSupport = new ValidationSupport();
@@ -532,6 +666,9 @@ public class ExchangeOperationController {
             AlertUtil.error("Ошибка БД", "Не удалось загрузить валюты: " + e.getMessage());
             return List.of();
         }
+    }
+
+    private record LatestRate(double buyRateMdl, double sellRateMdl) {
     }
 
     private record OperationForm(
