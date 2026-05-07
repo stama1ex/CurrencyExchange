@@ -21,6 +21,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
@@ -56,6 +57,8 @@ public class IncassationController {
     private TableColumn<Incassation, String> typeColumn;
     @FXML
     private TableColumn<Incassation, String> statusColumn;
+    @FXML
+    private TableColumn<Incassation, String> noteColumn;
 
     @FXML
     private SearchableComboBox<IncassationStatus> filterStatusBox;
@@ -72,6 +75,7 @@ public class IncassationController {
         amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
         typeColumn.setCellValueFactory(new PropertyValueFactory<>("operationType"));
         statusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
+        noteColumn.setCellValueFactory(new PropertyValueFactory<>("note"));
         typeColumn.setCellFactory(column -> new TableCell<>() {
             @Override
             protected void updateItem(String type, boolean empty) {
@@ -148,7 +152,7 @@ public class IncassationController {
                 return;
             }
 
-            String sql = "INSERT INTO incassations(cash_desk_id, incassation_date, currency_code, operation_type, amount, status) VALUES (?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO incassations(cash_desk_id, incassation_date, currency_code, operation_type, amount, status, note) VALUES (?, ?, ?, ?, ?, ?, ?)";
             try (Connection connection = DatabaseConnection.getConnection()) {
                 connection.setAutoCommit(false);
                 try {
@@ -159,6 +163,7 @@ public class IncassationController {
                         statement.setString(4, form.type().getDbValue());
                         statement.setDouble(5, amount);
                         statement.setString(6, form.status().getDbValue());
+                        statement.setString(7, form.note());
                         statement.executeUpdate();
                     }
 
@@ -218,7 +223,7 @@ public class IncassationController {
 
                     updateCashDeskBalanceIfCompleted(connection, cashDeskId, currencyCode, amount, form.type(), form.status());
 
-                    String sql = "UPDATE incassations SET cash_desk_id=?, incassation_date=?, currency_code=?, operation_type=?, amount=?, status=? WHERE incassation_id=?";
+                    String sql = "UPDATE incassations SET cash_desk_id=?, incassation_date=?, currency_code=?, operation_type=?, amount=?, status=?, note=? WHERE incassation_id=?";
                     try (PreparedStatement statement = connection.prepareStatement(sql)) {
                         statement.setInt(1, cashDeskId);
                         statement.setDate(2, Date.valueOf(form.date()));
@@ -226,7 +231,8 @@ public class IncassationController {
                         statement.setString(4, form.type().getDbValue());
                         statement.setDouble(5, amount);
                         statement.setString(6, form.status().getDbValue());
-                        statement.setInt(7, selected.getId());
+                        statement.setString(7, form.note());
+                        statement.setInt(8, selected.getId());
                         statement.executeUpdate();
                     }
                     connection.commit();
@@ -280,7 +286,7 @@ public class IncassationController {
     @FXML
     private void refreshTable() {
         data.clear();
-        String sql = "SELECT i.incassation_id, i.cash_desk_id, cd.cash_desk_name, i.incassation_date, i.currency_code, c.currency_name, i.operation_type, i.amount, i.status " +
+        String sql = "SELECT i.incassation_id, i.cash_desk_id, cd.cash_desk_name, i.incassation_date, i.currency_code, c.currency_name, i.operation_type, i.amount, i.status, i.note " +
                 "FROM incassations i JOIN cash_desks cd ON cd.cash_desk_id = i.cash_desk_id JOIN currencies c ON c.currency_code = i.currency_code ORDER BY i.incassation_id";
 
         try (Connection connection = DatabaseConnection.getConnection();
@@ -296,7 +302,8 @@ public class IncassationController {
                         resultSet.getString("currency_name"),
                         resultSet.getString("operation_type"),
                         resultSet.getDouble("amount"),
-                        resultSet.getString("status")
+                        resultSet.getString("status"),
+                        resultSet.getString("note")
                 ));
             }
         } catch (SQLException e) {
@@ -312,7 +319,7 @@ public class IncassationController {
         }
 
         data.clear();
-        String sql = "SELECT i.incassation_id, i.cash_desk_id, cd.cash_desk_name, i.incassation_date, i.currency_code, c.currency_name, i.operation_type, i.amount, i.status " +
+        String sql = "SELECT i.incassation_id, i.cash_desk_id, cd.cash_desk_name, i.incassation_date, i.currency_code, c.currency_name, i.operation_type, i.amount, i.status, i.note " +
                 "FROM incassations i JOIN cash_desks cd ON cd.cash_desk_id = i.cash_desk_id JOIN currencies c ON c.currency_code = i.currency_code WHERE i.status=? ORDER BY i.incassation_id";
 
         try (Connection connection = DatabaseConnection.getConnection();
@@ -329,7 +336,8 @@ public class IncassationController {
                             resultSet.getString("currency_name"),
                             resultSet.getString("operation_type"),
                             resultSet.getDouble("amount"),
-                            resultSet.getString("status")
+                            resultSet.getString("status"),
+                            resultSet.getString("note")
                     ));
                 }
             }
@@ -440,6 +448,9 @@ public class IncassationController {
         typeInput.getItems().setAll(IncassationType.values());
         SearchableComboBox<IncassationStatus> statusInput = new SearchableComboBox<>();
         statusInput.getItems().setAll(IncassationStatus.values());
+        TextArea noteInput = new TextArea(incassation == null ? "" : nullToBlank(incassation.getNote()));
+        noteInput.setPrefRowCount(3);
+        noteInput.setWrapText(true);
 
         if (incassation != null) {
             cashDeskInput.getSelectionModel().select(cashDeskInput.getItems().stream()
@@ -464,6 +475,8 @@ public class IncassationController {
         grid.add(amountInput, 1, 4);
         grid.add(new Label("Статус:"), 0, 5);
         grid.add(statusInput, 1, 5);
+        grid.add(new Label("Примечание:"), 0, 6);
+        grid.add(noteInput, 1, 6);
 
         dialog.getDialogPane().setContent(grid);
         ValidationSupport validationSupport = new ValidationSupport();
@@ -497,8 +510,13 @@ public class IncassationController {
                 currencyInput.getValue(),
                 typeInput.getValue(),
                 amountInput.getText().trim(),
-                statusInput.getValue()
+                statusInput.getValue(),
+                noteInput.getText().trim()
         ));
+    }
+
+    private String nullToBlank(String value) {
+        return value == null ? "" : value;
     }
 
     private record IncassationForm(
@@ -507,7 +525,8 @@ public class IncassationController {
             Currency currency,
             IncassationType type,
             String amount,
-            IncassationStatus status
+            IncassationStatus status,
+            String note
     ) {
     }
 

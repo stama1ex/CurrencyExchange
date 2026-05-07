@@ -12,12 +12,18 @@ public class Incassation {
     private String operationType;
     private double amount;
     private String status;
+    private String note;
 
     public Incassation() {
     }
 
     public Incassation(int id, int cashDeskId, LocalDate incassationDate, String currencyCode,
                        String operationType, double amount, String status) {
+        this(id, cashDeskId, incassationDate, currencyCode, operationType, amount, status, "");
+    }
+
+    public Incassation(int id, int cashDeskId, LocalDate incassationDate, String currencyCode,
+                       String operationType, double amount, String status, String note) {
         this.id = id;
         this.cashDeskId = cashDeskId;
         this.incassationDate = incassationDate;
@@ -25,11 +31,17 @@ public class Incassation {
         this.operationType = operationType;
         this.amount = amount;
         this.status = status;
+        this.note = note;
     }
 
     public Incassation(int id, int cashDeskId, String cashDeskName, LocalDate incassationDate, String currencyCode,
                        String currencyName, String operationType, double amount, String status) {
-        this(id, cashDeskId, incassationDate, currencyCode, operationType, amount, status);
+        this(id, cashDeskId, cashDeskName, incassationDate, currencyCode, currencyName, operationType, amount, status, "");
+    }
+
+    public Incassation(int id, int cashDeskId, String cashDeskName, LocalDate incassationDate, String currencyCode,
+                       String currencyName, String operationType, double amount, String status, String note) {
+        this(id, cashDeskId, incassationDate, currencyCode, operationType, amount, status, note);
         this.cashDeskName = cashDeskName;
         this.currencyName = currencyName;
     }
@@ -104,6 +116,14 @@ public class Incassation {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
     }
 }
 

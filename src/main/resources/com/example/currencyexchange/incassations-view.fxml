@@ -55,6 +55,7 @@
                 <TableColumn fx:id="amountColumn" text="Сумма" prefWidth="150"/>
                 <TableColumn fx:id="typeColumn" text="Тип" prefWidth="160"/>
                 <TableColumn fx:id="statusColumn" text="Статус" prefWidth="160"/>
+                <TableColumn fx:id="noteColumn" text="Примечание" prefWidth="240"/>
             </columns>
         </TableView>
     </VBox>

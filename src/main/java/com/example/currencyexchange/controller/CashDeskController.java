@@ -84,19 +84,28 @@ public class CashDeskController {
 
             double min = parseNotNegative(form.minLimit(), "Минимальный лимит не может быть отрицательным.");
             double max = parseNotNegative(form.maxLimit(), "Максимальный лимит не может быть отрицательным.");
+            double balanceMdl = parseNotNegative(form.balanceMdl(), "Баланс MDL не может быть отрицательным.");
+            double balanceRon = parseNotNegative(form.balanceRon(), "Баланс RON не может быть отрицательным.");
+            double balanceEur = parseNotNegative(form.balanceEur(), "Баланс EUR не может быть отрицательным.");
+            double balanceUsd = parseNotNegative(form.balanceUsd(), "Баланс USD не может быть отрицательным.");
             if (!ValidationService.isLimitRangeValid(min, max)) {
                 AlertUtil.warning("Валидация", "Максимальный лимит должен быть больше минимального.");
                 return;
             }
 
-            String sql = "INSERT INTO cash_desks(cash_desk_name, address, min_limit_mdl, max_limit_mdl, status) VALUES (?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO cash_desks(cash_desk_name, address, phone, balance_mdl, balance_ron, balance_eur, balance_usd, min_limit_mdl, max_limit_mdl, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (Connection connection = DatabaseConnection.getConnection();
                  PreparedStatement statement = connection.prepareStatement(sql)) {
                 statement.setString(1, form.name());
                 statement.setString(2, form.address());
-                statement.setDouble(3, min);
-                statement.setDouble(4, max);
-                statement.setString(5, form.status().getDbValue());
+                statement.setString(3, form.phone());
+                statement.setDouble(4, balanceMdl);
+                statement.setDouble(5, balanceRon);
+                statement.setDouble(6, balanceEur);
+                statement.setDouble(7, balanceUsd);
+                statement.setDouble(8, min);
+                statement.setDouble(9, max);
+                statement.setString(10, form.status().getDbValue());
                 statement.executeUpdate();
             }
             refreshTable();
@@ -128,20 +137,29 @@ public class CashDeskController {
 
             double min = parseNotNegative(form.minLimit(), "Минимальный лимит не может быть отрицательным.");
             double max = parseNotNegative(form.maxLimit(), "Максимальный лимит не может быть отрицательным.");
+            double balanceMdl = parseNotNegative(form.balanceMdl(), "Баланс MDL не может быть отрицательным.");
+            double balanceRon = parseNotNegative(form.balanceRon(), "Баланс RON не может быть отрицательным.");
+            double balanceEur = parseNotNegative(form.balanceEur(), "Баланс EUR не может быть отрицательным.");
+            double balanceUsd = parseNotNegative(form.balanceUsd(), "Баланс USD не может быть отрицательным.");
             if (!ValidationService.isLimitRangeValid(min, max)) {
                 AlertUtil.warning("Валидация", "Максимальный лимит должен быть больше минимального.");
                 return;
             }
 
-            String sql = "UPDATE cash_desks SET cash_desk_name=?, address=?, min_limit_mdl=?, max_limit_mdl=?, status=? WHERE cash_desk_id=?";
+            String sql = "UPDATE cash_desks SET cash_desk_name=?, address=?, phone=?, balance_mdl=?, balance_ron=?, balance_eur=?, balance_usd=?, min_limit_mdl=?, max_limit_mdl=?, status=? WHERE cash_desk_id=?";
             try (Connection connection = DatabaseConnection.getConnection();
                  PreparedStatement statement = connection.prepareStatement(sql)) {
                 statement.setString(1, form.name());
                 statement.setString(2, form.address());
-                statement.setDouble(3, min);
-                statement.setDouble(4, max);
-                statement.setString(5, form.status().getDbValue());
-                statement.setInt(6, selected.getId());
+                statement.setString(3, form.phone());
+                statement.setDouble(4, balanceMdl);
+                statement.setDouble(5, balanceRon);
+                statement.setDouble(6, balanceEur);
+                statement.setDouble(7, balanceUsd);
+                statement.setDouble(8, min);
+                statement.setDouble(9, max);
+                statement.setString(10, form.status().getDbValue());
+                statement.setInt(11, selected.getId());
                 statement.executeUpdate();
             }
             refreshTable();
@@ -195,8 +213,8 @@ public class CashDeskController {
         String search = "%" + searchText.toUpperCase() + "%";
 
         StringBuilder sql = new StringBuilder(
-                "SELECT cash_desk_id, cash_desk_name, address, min_limit_mdl, max_limit_mdl, status " +
-                        "FROM cash_desks WHERE (UPPER(cash_desk_name) LIKE ? OR UPPER(address) LIKE ?)");
+                "SELECT cash_desk_id, cash_desk_name, address, phone, balance_mdl, balance_ron, balance_eur, balance_usd, min_limit_mdl, max_limit_mdl, status " +
+                        "FROM cash_desks WHERE (UPPER(cash_desk_name) LIKE ? OR UPPER(address) LIKE ? OR UPPER(COALESCE(phone, '')) LIKE ?)");
         if (status != null) {
             sql.append(" AND status=?");
         }
@@ -206,8 +224,9 @@ public class CashDeskController {
              PreparedStatement statement = connection.prepareStatement(sql.toString())) {
             statement.setString(1, search);
             statement.setString(2, search);
+            statement.setString(3, search);
             if (status != null) {
-                statement.setString(3, status.getDbValue());
+                statement.setString(4, status.getDbValue());
             }
 
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -216,6 +235,11 @@ public class CashDeskController {
                             resultSet.getInt("cash_desk_id"),
                             resultSet.getString("cash_desk_name"),
                             resultSet.getString("address"),
+                            resultSet.getString("phone"),
+                            resultSet.getDouble("balance_mdl"),
+                            resultSet.getDouble("balance_ron"),
+                            resultSet.getDouble("balance_eur"),
+                            resultSet.getDouble("balance_usd"),
                             resultSet.getDouble("min_limit_mdl"),
                             resultSet.getDouble("max_limit_mdl"),
                             resultSet.getString("status")
@@ -300,12 +324,27 @@ public class CashDeskController {
         Label address = new Label(desk.getAddress());
         address.getStyleClass().add("cash-desk-address");
         address.setWrapText(true);
-        body.getChildren().addAll(title, address);
+        Label phone = new Label("Телефон: " + formatOptional(desk.getPhone()));
+        phone.getStyleClass().add("cash-desk-address");
+        phone.setWrapText(true);
+        body.getChildren().addAll(title, address, phone);
 
         HBox limits = new HBox(10);
         limits.getChildren().addAll(
-                createLimitBox("Мин. лимит", desk.getMinLimitMdl()),
-                createLimitBox("Макс. лимит", desk.getMaxLimitMdl())
+                createMoneyBox("Мин. лимит", desk.getMinLimitMdl(), "MDL"),
+                createMoneyBox("Макс. лимит", desk.getMaxLimitMdl(), "MDL")
+        );
+
+        HBox balancesTop = new HBox(10);
+        balancesTop.getChildren().addAll(
+                createMoneyBox("Баланс MDL", desk.getBalanceMdl(), "MDL"),
+                createMoneyBox("Баланс RON", desk.getBalanceRon(), "RON")
+        );
+
+        HBox balancesBottom = new HBox(10);
+        balancesBottom.getChildren().addAll(
+                createMoneyBox("Баланс EUR", desk.getBalanceEur(), "EUR"),
+                createMoneyBox("Баланс USD", desk.getBalanceUsd(), "USD")
         );
 
         HBox footer = new HBox(8);
@@ -316,24 +355,28 @@ public class CashDeskController {
         limitChip.getStyleClass().add("soft-chip");
         footer.getChildren().addAll(statusChip, limitChip);
 
-        card.getChildren().addAll(top, body, limits, footer);
+        card.getChildren().addAll(top, body, balancesTop, balancesBottom, limits, footer);
         card.setOnMouseClicked(event -> selectCashDesk(desk));
         return card;
     }
 
-    private VBox createLimitBox(String title, double amount) {
+    private VBox createMoneyBox(String title, double amount, String currency) {
         VBox box = new VBox(4);
         box.getStyleClass().add("cash-desk-limit-box");
         HBox.setHgrow(box, Priority.ALWAYS);
 
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("cash-desk-limit-title");
-        Label valueLabel = new Label(moneyFormat.format(amount) + " MDL");
+        Label valueLabel = new Label(moneyFormat.format(amount) + " " + currency);
         valueLabel.getStyleClass().add("cash-desk-limit-value");
         valueLabel.setWrapText(true);
 
         box.getChildren().addAll(titleLabel, valueLabel);
         return box;
+    }
+
+    private String formatOptional(String value) {
+        return value == null || value.isBlank() ? "—" : value;
     }
 
     private void selectCashDesk(CashDesk desk) {
@@ -431,6 +474,11 @@ public class CashDeskController {
 
         TextField nameInput = new TextField(desk == null ? "" : desk.getName());
         TextField addressInput = new TextField(desk == null ? "" : desk.getAddress());
+        TextField phoneInput = new TextField(desk == null ? "" : formatOptionalForEdit(desk.getPhone()));
+        TextField balanceMdlInput = new TextField(desk == null ? "0" : String.valueOf(desk.getBalanceMdl()));
+        TextField balanceRonInput = new TextField(desk == null ? "0" : String.valueOf(desk.getBalanceRon()));
+        TextField balanceEurInput = new TextField(desk == null ? "0" : String.valueOf(desk.getBalanceEur()));
+        TextField balanceUsdInput = new TextField(desk == null ? "0" : String.valueOf(desk.getBalanceUsd()));
         TextField minLimitInput = new TextField(desk == null ? "" : String.valueOf(desk.getMinLimitMdl()));
         TextField maxLimitInput = new TextField(desk == null ? "" : String.valueOf(desk.getMaxLimitMdl()));
         SearchableComboBox<CashDeskStatus> statusInput = new SearchableComboBox<>();
@@ -443,12 +491,22 @@ public class CashDeskController {
         grid.add(nameInput, 1, 0);
         grid.add(new Label("Адрес:"), 0, 1);
         grid.add(addressInput, 1, 1);
-        grid.add(new Label("Мин. лимит MDL:"), 0, 2);
-        grid.add(minLimitInput, 1, 2);
-        grid.add(new Label("Макс. лимит MDL:"), 0, 3);
-        grid.add(maxLimitInput, 1, 3);
-        grid.add(new Label("Статус:"), 0, 4);
-        grid.add(statusInput, 1, 4);
+        grid.add(new Label("Телефон:"), 0, 2);
+        grid.add(phoneInput, 1, 2);
+        grid.add(new Label("Баланс MDL:"), 0, 3);
+        grid.add(balanceMdlInput, 1, 3);
+        grid.add(new Label("Баланс RON:"), 0, 4);
+        grid.add(balanceRonInput, 1, 4);
+        grid.add(new Label("Баланс EUR:"), 0, 5);
+        grid.add(balanceEurInput, 1, 5);
+        grid.add(new Label("Баланс USD:"), 0, 6);
+        grid.add(balanceUsdInput, 1, 6);
+        grid.add(new Label("Мин. лимит MDL:"), 0, 7);
+        grid.add(minLimitInput, 1, 7);
+        grid.add(new Label("Макс. лимит MDL:"), 0, 8);
+        grid.add(maxLimitInput, 1, 8);
+        grid.add(new Label("Статус:"), 0, 9);
+        grid.add(statusInput, 1, 9);
 
         dialog.getDialogPane().setContent(grid);
         ValidationSupport validationSupport = new ValidationSupport();
@@ -456,6 +514,26 @@ public class CashDeskController {
         validationSupport.setErrorDecorationEnabled(false);
         validationSupport.registerValidator(nameInput, Validator.createEmptyValidator("Название кассы обязательно."));
         validationSupport.registerValidator(addressInput, Validator.createEmptyValidator("Адрес кассы обязателен."));
+        validationSupport.registerValidator(balanceMdlInput, Validator.createPredicateValidator(
+                this::isNotNegativeNumber,
+                "Баланс MDL должен быть числом 0 или больше.",
+                Severity.ERROR
+        ));
+        validationSupport.registerValidator(balanceRonInput, Validator.createPredicateValidator(
+                this::isNotNegativeNumber,
+                "Баланс RON должен быть числом 0 или больше.",
+                Severity.ERROR
+        ));
+        validationSupport.registerValidator(balanceEurInput, Validator.createPredicateValidator(
+                this::isNotNegativeNumber,
+                "Баланс EUR должен быть числом 0 или больше.",
+                Severity.ERROR
+        ));
+        validationSupport.registerValidator(balanceUsdInput, Validator.createPredicateValidator(
+                this::isNotNegativeNumber,
+                "Баланс USD должен быть числом 0 или больше.",
+                Severity.ERROR
+        ));
         validationSupport.registerValidator(minLimitInput, Validator.createPredicateValidator(
                 this::isNotNegativeNumber,
                 "Минимальный лимит должен быть числом 0 или больше.",
@@ -478,12 +556,32 @@ public class CashDeskController {
         return Optional.of(new CashDeskForm(
                 nameInput.getText().trim(),
                 addressInput.getText().trim(),
+                phoneInput.getText().trim(),
+                balanceMdlInput.getText().trim(),
+                balanceRonInput.getText().trim(),
+                balanceEurInput.getText().trim(),
+                balanceUsdInput.getText().trim(),
                 minLimitInput.getText().trim(),
                 maxLimitInput.getText().trim(),
                 statusInput.getValue()
         ));
     }
 
-    private record CashDeskForm(String name, String address, String minLimit, String maxLimit, CashDeskStatus status) {
+    private String formatOptionalForEdit(String value) {
+        return value == null ? "" : value;
+    }
+
+    private record CashDeskForm(
+            String name,
+            String address,
+            String phone,
+            String balanceMdl,
+            String balanceRon,
+            String balanceEur,
+            String balanceUsd,
+            String minLimit,
+            String maxLimit,
+            CashDeskStatus status
+    ) {
     }
 }
