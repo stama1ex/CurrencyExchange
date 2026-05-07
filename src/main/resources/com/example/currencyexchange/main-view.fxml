@@ -9,11 +9,13 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane xmlns="http://javafx.com/javafx/21"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.example.currencyexchange.controller.MainController"
-            stylesheets="@styles.css"
-            styleClass="app-root">
+<StackPane xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.example.currencyexchange.controller.MainController"
+           stylesheets="@styles.css"
+           styleClass="app-root">
+
+<BorderPane styleClass="app-root">
 
     <left>
         <VBox fx:id="sidebar" prefWidth="248" styleClass="sidebar">
@@ -55,3 +57,12 @@
         </BorderPane>
     </center>
 </BorderPane>
+
+    <VBox fx:id="toastHost"
+          alignment="TOP_RIGHT"
+          maxWidth="420"
+          pickOnBounds="false"
+          spacing="10"
+          styleClass="toast-host"
+          StackPane.alignment="TOP_RIGHT"/>
+</StackPane>

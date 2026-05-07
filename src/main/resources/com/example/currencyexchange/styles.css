@@ -659,3 +659,87 @@
   -fx-background-color: #cbd5e1;
   -fx-background-radius: 999px;
 }
+
+.toast-host {
+  -fx-padding: 18 22 0 0;
+}
+
+.app-toast {
+  -fx-alignment: top-left;
+  -fx-background-color: rgba(255, 255, 255, 0.98);
+  -fx-background-radius: 14px;
+  -fx-border-color: #dbe4f0;
+  -fx-border-radius: 14px;
+  -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.18), 24, 0.18, 0, 8);
+  -fx-min-width: 320px;
+  -fx-max-width: 420px;
+  -fx-padding: 13 13 13 13;
+}
+
+.app-toast-info {
+  -fx-border-color: #bfdbfe;
+}
+
+.app-toast-warning {
+  -fx-border-color: #fde68a;
+}
+
+.app-toast-error {
+  -fx-border-color: #fecaca;
+}
+
+.app-toast-icon {
+  -fx-alignment: center;
+  -fx-background-radius: 999px;
+  -fx-font-size: 13px;
+  -fx-font-weight: 900;
+  -fx-min-height: 26px;
+  -fx-min-width: 26px;
+  -fx-pref-height: 26px;
+  -fx-pref-width: 26px;
+}
+
+.app-toast-icon-info {
+  -fx-background-color: #dbeafe;
+  -fx-text-fill: #1d4ed8;
+}
+
+.app-toast-icon-warning {
+  -fx-background-color: #fef3c7;
+  -fx-text-fill: #b45309;
+}
+
+.app-toast-icon-error {
+  -fx-background-color: #fee2e2;
+  -fx-text-fill: #b91c1c;
+}
+
+.app-toast-title {
+  -fx-text-fill: #0f172a;
+  -fx-font-size: 13px;
+  -fx-font-weight: 800;
+}
+
+.app-toast-message {
+  -fx-text-fill: #475569;
+  -fx-font-size: 12px;
+  -fx-line-spacing: 2px;
+}
+
+.app-toast-close {
+  -fx-background-color: transparent;
+  -fx-border-color: transparent;
+  -fx-border-radius: 8px;
+  -fx-background-radius: 8px;
+  -fx-text-fill: #94a3b8;
+  -fx-font-size: 12px;
+  -fx-font-weight: 800;
+  -fx-min-height: 24px;
+  -fx-min-width: 24px;
+  -fx-padding: 0;
+}
+
+.app-toast-close:hover {
+  -fx-background-color: #f1f5f9;
+  -fx-text-fill: #475569;
+}

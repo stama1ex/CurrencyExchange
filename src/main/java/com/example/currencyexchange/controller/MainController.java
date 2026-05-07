@@ -11,6 +11,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -23,6 +24,8 @@ public class MainController {
 
     @FXML
     private StackPane contentArea;
+    @FXML
+    private VBox toastHost;
     @FXML
     private ScrollPane sidebarScrollPane;
     @FXML
@@ -42,6 +45,7 @@ public class MainController {
 
     @FXML
     public void initialize() {
+        AlertUtil.setToastHost(toastHost);
         testDatabaseConnection();
         SmoothScrollUtil.install(sidebarScrollPane);
         // Показываем Dashboard по умолчанию
