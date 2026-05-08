@@ -39,11 +39,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 public class CurrencyController {
-    private static final Set<String> SYSTEM_CURRENCY_CODES = Set.of("MDL", "RON", "EUR", "USD");
-
     @FXML
     private TextField searchField;
     @FXML
@@ -82,11 +79,20 @@ public class CurrencyController {
             }
 
             String sql = "INSERT INTO currencies(currency_code, currency_name) VALUES (?, ?)";
-            try (Connection connection = DatabaseConnection.getConnection();
-                 PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setString(1, form.code());
-                statement.setString(2, form.name());
-                statement.executeUpdate();
+            try (Connection connection = DatabaseConnection.getConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                        statement.setString(1, form.code());
+                        statement.setString(2, form.name());
+                        statement.executeUpdate();
+                    }
+                    createZeroBalancesForCurrency(connection, form.code());
+                    connection.commit();
+                } catch (SQLException | RuntimeException e) {
+                    rollbackQuietly(connection);
+                    throw e;
+                }
             }
             refreshTable();
             AlertUtil.success("Валюты", "Валюта успешно добавлена.");
@@ -143,16 +149,19 @@ public class CurrencyController {
             return;
         }
 
-        boolean systemCurrency = isSystemCurrency(selected.getCode());
-        if (systemCurrency || usage.hasReferences()) {
-            AlertUtil.warning("Валюта используется", buildBlockedDeleteMessage(selected, usage, systemCurrency));
+        if (usage.hasBlockingReferences()) {
+            AlertUtil.warning("Валюта используется", buildBlockedDeleteMessage(selected, usage));
             return;
         }
 
+        String message = selected.getCode() + " · " + selected.getName();
+        if (usage.rates() > 0) {
+            message += "\nКурсы этой валюты тоже будут удалены: " + usage.rates();
+        }
         DeleteConfirmationUtil.show(
                 owner,
                 "Удалить валюту?",
-                selected.getCode() + " · " + selected.getName(),
+                message,
                 () -> deleteCurrency(selected)
         );
     }
@@ -168,7 +177,7 @@ public class CurrencyController {
             AlertUtil.success("Валюты", "Валюта успешно удалена.");
         } catch (SQLException e) {
             if ("23503".equals(e.getSQLState())) {
-                AlertUtil.warning("Валюта используется", "Валюту нельзя удалить: на нее уже есть ссылки в операциях, курсах или инкассациях.");
+                AlertUtil.warning("Валюта используется", "Валюту нельзя удалить: на нее уже есть ссылки в операциях обмена или инкассациях.");
                 return;
             }
             AlertUtil.error("Ошибка БД", "Не удалось удалить валюту: " + e.getMessage());
@@ -323,10 +332,6 @@ public class CurrencyController {
         return CurrencyCodeUtil.isKnownCurrencyCode(code);
     }
 
-    private boolean isSystemCurrency(String code) {
-        return SYSTEM_CURRENCY_CODES.contains(code == null ? "" : code.trim().toUpperCase());
-    }
-
     private CurrencyUsage loadCurrencyUsage(String code) throws SQLException {
         try (Connection connection = DatabaseConnection.getConnection()) {
             return new CurrencyUsage(
@@ -361,25 +366,34 @@ public class CurrencyController {
         }
     }
 
-    private String buildBlockedDeleteMessage(Currency currency, CurrencyUsage usage, boolean systemCurrency) {
-        List<String> reasons = new ArrayList<>();
-        if (systemCurrency) {
-            reasons.add("это системная валюта балансов касс");
+    private void createZeroBalancesForCurrency(Connection connection, String code) throws SQLException {
+        String sql = "INSERT INTO cash_desk_balances(cash_desk_id, currency_code, balance) " +
+                "SELECT cash_desk_id, ?, 0 FROM cash_desks " +
+                "ON CONFLICT (cash_desk_id, currency_code) DO NOTHING";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, code);
+            statement.executeUpdate();
         }
+    }
+
+    private void rollbackQuietly(Connection connection) {
+        try {
+            connection.rollback();
+        } catch (SQLException ignored) {
+            // Keep the original database error visible to the user.
+        }
+    }
+
+    private String buildBlockedDeleteMessage(Currency currency, CurrencyUsage usage) {
+        List<String> reasons = new ArrayList<>();
         if (usage.operations() > 0) {
             reasons.add("операции обмена: " + usage.operations());
-        }
-        if (usage.rates() > 0) {
-            reasons.add("курсы: " + usage.rates());
         }
         if (usage.incassations() > 0) {
             reasons.add("инкассации: " + usage.incassations());
         }
 
-        String suffix = systemCurrency
-                ? "MDL, RON, EUR и USD нужны для балансов касс и отчетов."
-                : "Сначала удалите связанные записи.";
-        return currency.getCode() + " нельзя удалить: " + String.join("; ", reasons) + ". " + suffix;
+        return currency.getCode() + " нельзя удалить: " + String.join("; ", reasons) + ". Сначала удалите связанные записи.";
     }
 
     private void selectCurrency(Currency currency) {
@@ -468,8 +482,8 @@ public class CurrencyController {
     }
 
     private record CurrencyUsage(int operations, int rates, int incassations) {
-        private boolean hasReferences() {
-            return operations > 0 || rates > 0 || incassations > 0;
+        private boolean hasBlockingReferences() {
+            return operations > 0 || incassations > 0;
         }
     }
 }

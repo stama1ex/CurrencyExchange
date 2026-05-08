@@ -3,6 +3,7 @@ package com.example.currencyexchange.controller;
 import com.example.currencyexchange.DatabaseConnection;
 import com.example.currencyexchange.enums.CashDeskStatus;
 import com.example.currencyexchange.model.CashDesk;
+import com.example.currencyexchange.model.Currency;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
 import com.example.currencyexchange.util.DeleteConfirmationUtil;
@@ -21,6 +22,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -35,7 +37,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.DecimalFormat;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class CashDeskController {
@@ -86,31 +92,32 @@ public class CashDeskController {
                 return;
             }
 
-            double min = parseNotNegative(form.minLimit(), "Минимальный лимит не может быть отрицательным.");
-            double max = parseNotNegative(form.maxLimit(), "Максимальный лимит не может быть отрицательным.");
-            double balanceMdl = parseNotNegative(form.balanceMdl(), "Баланс MDL не может быть отрицательным.");
-            double balanceRon = parseNotNegative(form.balanceRon(), "Баланс RON не может быть отрицательным.");
-            double balanceEur = parseNotNegative(form.balanceEur(), "Баланс EUR не может быть отрицательным.");
-            double balanceUsd = parseNotNegative(form.balanceUsd(), "Баланс USD не может быть отрицательным.");
-            if (!ValidationService.isLimitRangeValid(min, max)) {
-                AlertUtil.warning("Валидация", "Максимальный лимит должен быть больше минимального.");
-                return;
-            }
+            Map<String, ParsedBalance> balances = parseBalances(form.balances());
 
-            String sql = "INSERT INTO cash_desks(cash_desk_name, address, phone, balance_mdl, balance_ron, balance_eur, balance_usd, min_limit_mdl, max_limit_mdl, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            try (Connection connection = DatabaseConnection.getConnection();
-                 PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setString(1, form.name());
-                statement.setString(2, form.address());
-                statement.setString(3, form.phone());
-                statement.setDouble(4, balanceMdl);
-                statement.setDouble(5, balanceRon);
-                statement.setDouble(6, balanceEur);
-                statement.setDouble(7, balanceUsd);
-                statement.setDouble(8, min);
-                statement.setDouble(9, max);
-                statement.setString(10, form.status().getDbValue());
-                statement.executeUpdate();
+            String sql = "INSERT INTO cash_desks(cash_desk_name, address, phone, status) VALUES (?, ?, ?, ?)";
+            try (Connection connection = DatabaseConnection.getConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    int cashDeskId;
+                    try (PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                        statement.setString(1, form.name());
+                        statement.setString(2, form.address());
+                        statement.setString(3, form.phone());
+                        statement.setString(4, form.status().getDbValue());
+                        statement.executeUpdate();
+                        try (ResultSet keys = statement.getGeneratedKeys()) {
+                            if (!keys.next()) {
+                                throw new SQLException("Не удалось получить ID новой кассы.");
+                            }
+                            cashDeskId = keys.getInt(1);
+                        }
+                    }
+                    saveCashDeskBalances(connection, cashDeskId, balances);
+                    connection.commit();
+                } catch (SQLException | RuntimeException e) {
+                    rollbackQuietly(connection);
+                    throw e;
+                }
             }
             refreshTable();
             AlertUtil.success("Кассы", "Касса успешно добавлена.");
@@ -140,32 +147,26 @@ public class CashDeskController {
                 return;
             }
 
-            double min = parseNotNegative(form.minLimit(), "Минимальный лимит не может быть отрицательным.");
-            double max = parseNotNegative(form.maxLimit(), "Максимальный лимит не может быть отрицательным.");
-            double balanceMdl = parseNotNegative(form.balanceMdl(), "Баланс MDL не может быть отрицательным.");
-            double balanceRon = parseNotNegative(form.balanceRon(), "Баланс RON не может быть отрицательным.");
-            double balanceEur = parseNotNegative(form.balanceEur(), "Баланс EUR не может быть отрицательным.");
-            double balanceUsd = parseNotNegative(form.balanceUsd(), "Баланс USD не может быть отрицательным.");
-            if (!ValidationService.isLimitRangeValid(min, max)) {
-                AlertUtil.warning("Валидация", "Максимальный лимит должен быть больше минимального.");
-                return;
-            }
+            Map<String, ParsedBalance> balances = parseBalances(form.balances());
 
-            String sql = "UPDATE cash_desks SET cash_desk_name=?, address=?, phone=?, balance_mdl=?, balance_ron=?, balance_eur=?, balance_usd=?, min_limit_mdl=?, max_limit_mdl=?, status=? WHERE cash_desk_id=?";
-            try (Connection connection = DatabaseConnection.getConnection();
-                 PreparedStatement statement = connection.prepareStatement(sql)) {
-                statement.setString(1, form.name());
-                statement.setString(2, form.address());
-                statement.setString(3, form.phone());
-                statement.setDouble(4, balanceMdl);
-                statement.setDouble(5, balanceRon);
-                statement.setDouble(6, balanceEur);
-                statement.setDouble(7, balanceUsd);
-                statement.setDouble(8, min);
-                statement.setDouble(9, max);
-                statement.setString(10, form.status().getDbValue());
-                statement.setInt(11, selected.getId());
-                statement.executeUpdate();
+            String sql = "UPDATE cash_desks SET cash_desk_name=?, address=?, phone=?, status=? WHERE cash_desk_id=?";
+            try (Connection connection = DatabaseConnection.getConnection()) {
+                connection.setAutoCommit(false);
+                try {
+                    try (PreparedStatement statement = connection.prepareStatement(sql)) {
+                        statement.setString(1, form.name());
+                        statement.setString(2, form.address());
+                        statement.setString(3, form.phone());
+                        statement.setString(4, form.status().getDbValue());
+                        statement.setInt(5, selected.getId());
+                        statement.executeUpdate();
+                    }
+                    saveCashDeskBalances(connection, selected.getId(), balances);
+                    connection.commit();
+                } catch (SQLException | RuntimeException e) {
+                    rollbackQuietly(connection);
+                    throw e;
+                }
             }
             refreshTable();
             AlertUtil.success("Кассы", "Касса успешно изменена.");
@@ -227,7 +228,7 @@ public class CashDeskController {
         String search = "%" + searchText.toUpperCase() + "%";
 
         StringBuilder sql = new StringBuilder(
-                "SELECT cash_desk_id, cash_desk_name, address, phone, balance_mdl, balance_ron, balance_eur, balance_usd, min_limit_mdl, max_limit_mdl, status " +
+                "SELECT cash_desk_id, cash_desk_name, address, phone, status " +
                         "FROM cash_desks WHERE (UPPER(cash_desk_name) LIKE ? OR UPPER(address) LIKE ? OR UPPER(COALESCE(phone, '')) LIKE ?)");
         if (ValidationService.isNotBlank(status)) {
             sql.append(" AND status=?");
@@ -245,20 +246,18 @@ public class CashDeskController {
 
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
-                    displayedCashDesks.add(new CashDesk(
+                    CashDesk desk = new CashDesk(
                             resultSet.getInt("cash_desk_id"),
                             resultSet.getString("cash_desk_name"),
                             resultSet.getString("address"),
                             resultSet.getString("phone"),
-                            resultSet.getDouble("balance_mdl"),
-                            resultSet.getDouble("balance_ron"),
-                            resultSet.getDouble("balance_eur"),
-                            resultSet.getDouble("balance_usd"),
-                            resultSet.getDouble("min_limit_mdl"),
-                            resultSet.getDouble("max_limit_mdl"),
                             resultSet.getString("status")
-                    ));
+                    );
+                    displayedCashDesks.add(desk);
                 }
+            }
+            for (CashDesk desk : displayedCashDesks) {
+                desk.setBalances(loadCashDeskBalances(connection, desk.getId()));
             }
 
             if (selectedCashDesk != null) {
@@ -344,50 +343,46 @@ public class CashDeskController {
         phone.setWrapText(true);
         body.getChildren().addAll(title, address, phone);
 
-        HBox limits = new HBox(10);
-        limits.getChildren().addAll(
-                createMoneyBox("Мин. лимит", desk.getMinLimitMdl(), "MDL"),
-                createMoneyBox("Макс. лимит", desk.getMaxLimitMdl(), "MDL")
-        );
-
-        HBox balancesTop = new HBox(10);
-        balancesTop.getChildren().addAll(
-                createMoneyBox("Баланс MDL", desk.getBalanceMdl(), "MDL"),
-                createMoneyBox("Баланс RON", desk.getBalanceRon(), "RON")
-        );
-
-        HBox balancesBottom = new HBox(10);
-        balancesBottom.getChildren().addAll(
-                createMoneyBox("Баланс EUR", desk.getBalanceEur(), "EUR"),
-                createMoneyBox("Баланс USD", desk.getBalanceUsd(), "USD")
-        );
+        FlowPane balances = new FlowPane(10, 10);
+        balances.setMaxWidth(Double.MAX_VALUE);
+        balances.getChildren().addAll(createBalanceBoxes(desk));
 
         HBox footer = new HBox(8);
         footer.setAlignment(Pos.CENTER_LEFT);
         Label statusChip = new Label(formatStatus(desk.getStatus()));
         applyStatusStyle(statusChip, desk.getStatus());
-        Label limitChip = new Label("MDL лимиты");
+        Label limitChip = new Label("Лимиты по валютам");
         limitChip.getStyleClass().add("soft-chip");
         footer.getChildren().addAll(statusChip, limitChip);
 
-        card.getChildren().addAll(top, body, balancesTop, balancesBottom, limits, footer);
+        card.getChildren().addAll(top, body, balances, footer);
         card.setOnMouseClicked(event -> selectCashDesk(desk));
         return card;
     }
 
-    private VBox createMoneyBox(String title, double amount, String currency) {
+    private List<VBox> createBalanceBoxes(CashDesk desk) {
+        return desk.getBalances().stream()
+                .map(this::createBalanceBox)
+                .toList();
+    }
+
+    private VBox createBalanceBox(CashDesk.Balance balance) {
         VBox box = new VBox(4);
         box.getStyleClass().add("cash-desk-limit-box");
         HBox.setHgrow(box, Priority.ALWAYS);
         box.setMaxWidth(Double.MAX_VALUE);
 
-        Label titleLabel = new Label(title);
+        Label titleLabel = new Label(balance.currencyCode());
         titleLabel.getStyleClass().add("cash-desk-limit-title");
-        Label valueLabel = new Label(moneyFormat.format(amount) + " " + currency);
+        Label valueLabel = new Label(moneyFormat.format(balance.amount()) + " " + balance.currencyCode());
         valueLabel.getStyleClass().add("cash-desk-limit-value");
         valueLabel.setWrapText(true);
+        Label limitsLabel = new Label("Мин. " + moneyFormat.format(balance.minLimit())
+                + " / Макс. " + moneyFormat.format(balance.maxLimit()));
+        limitsLabel.getStyleClass().add("cash-desk-limit-title");
+        limitsLabel.setWrapText(true);
 
-        box.getChildren().addAll(titleLabel, valueLabel);
+        box.getChildren().addAll(titleLabel, valueLabel, limitsLabel);
         return box;
     }
 
@@ -495,6 +490,112 @@ public class CashDeskController {
         }
     }
 
+    private Map<String, BalanceFormValues> collectBalanceValues(Map<String, BalanceInputs> balanceInputs) {
+        Map<String, BalanceFormValues> values = new LinkedHashMap<>();
+        balanceInputs.forEach((code, inputs) -> values.put(code, new BalanceFormValues(
+                inputs.balance().getText().trim(),
+                inputs.minLimit().getText().trim(),
+                inputs.maxLimit().getText().trim()
+        )));
+        return values;
+    }
+
+    private Map<String, ParsedBalance> parseBalances(Map<String, BalanceFormValues> balanceValues) {
+        Map<String, ParsedBalance> balances = new LinkedHashMap<>();
+        for (Map.Entry<String, BalanceFormValues> entry : balanceValues.entrySet()) {
+            String code = entry.getKey();
+            BalanceFormValues values = entry.getValue();
+            double balance = parseNotNegative(
+                    values.balance(),
+                    "Баланс " + entry.getKey() + " не может быть отрицательным."
+            );
+            double minLimit = parseNotNegative(
+                    values.minLimit(),
+                    "Минимальный лимит " + code + " не может быть отрицательным."
+            );
+            double maxLimit = parseNotNegative(
+                    values.maxLimit(),
+                    "Максимальный лимит " + code + " не может быть отрицательным."
+            );
+            if (maxLimit < minLimit) {
+                throw new IllegalArgumentException("Максимальный лимит " + code + " не может быть меньше минимального.");
+            }
+            balances.put(code, new ParsedBalance(balance, minLimit, maxLimit));
+        }
+        return balances;
+    }
+
+    private List<Currency> loadCurrencies() {
+        String sql = "SELECT currency_code, currency_name FROM currencies ORDER BY currency_code";
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            List<Currency> currencies = new java.util.ArrayList<>();
+            while (resultSet.next()) {
+                currencies.add(new Currency(
+                        resultSet.getString("currency_code"),
+                        resultSet.getString("currency_name")
+                ));
+            }
+            return currencies;
+        } catch (SQLException e) {
+            AlertUtil.error("Ошибка БД", "Не удалось загрузить валюты: " + e.getMessage());
+            return List.of();
+        }
+    }
+
+    private List<CashDesk.Balance> loadCashDeskBalances(Connection connection, int cashDeskId) throws SQLException {
+        String sql = "SELECT c.currency_code, c.currency_name, " +
+                "COALESCE(cdb.balance, 0) AS balance, " +
+                "COALESCE(cdb.min_limit, 0) AS min_limit, " +
+                "COALESCE(cdb.max_limit, 0) AS max_limit " +
+                "FROM currencies c " +
+                "LEFT JOIN cash_desk_balances cdb ON cdb.currency_code = c.currency_code AND cdb.cash_desk_id = ? " +
+                "ORDER BY c.currency_code";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, cashDeskId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<CashDesk.Balance> balances = new java.util.ArrayList<>();
+                while (resultSet.next()) {
+                    balances.add(new CashDesk.Balance(
+                            resultSet.getString("currency_code"),
+                            resultSet.getString("currency_name"),
+                            resultSet.getDouble("balance"),
+                            resultSet.getDouble("min_limit"),
+                            resultSet.getDouble("max_limit")
+                    ));
+                }
+                return balances;
+            }
+        }
+    }
+
+    private void saveCashDeskBalances(Connection connection, int cashDeskId, Map<String, ParsedBalance> balances) throws SQLException {
+        String sql = "INSERT INTO cash_desk_balances(cash_desk_id, currency_code, balance, min_limit, max_limit) VALUES (?, ?, ?, ?, ?) " +
+                "ON CONFLICT (cash_desk_id, currency_code) DO UPDATE SET " +
+                "balance = EXCLUDED.balance, min_limit = EXCLUDED.min_limit, max_limit = EXCLUDED.max_limit";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (Map.Entry<String, ParsedBalance> entry : balances.entrySet()) {
+                ParsedBalance balance = entry.getValue();
+                statement.setInt(1, cashDeskId);
+                statement.setString(2, entry.getKey());
+                statement.setDouble(3, balance.amount());
+                statement.setDouble(4, balance.minLimit());
+                statement.setDouble(5, balance.maxLimit());
+                statement.addBatch();
+            }
+            statement.executeBatch();
+        }
+    }
+
+    private void rollbackQuietly(Connection connection) {
+        try {
+            connection.rollback();
+        } catch (SQLException ignored) {
+            // Keep the original database error visible to the user.
+        }
+    }
+
     private Optional<CashDeskForm> showCashDeskDialog(CashDesk desk) {
         Dialog<ButtonType> dialog = new Dialog<>();
         ModalDialogUtil.configureFormDialog(
@@ -515,38 +616,41 @@ public class CashDeskController {
         TextField nameInput = new TextField(desk == null ? "" : desk.getName());
         TextField addressInput = new TextField(desk == null ? "" : desk.getAddress());
         TextField phoneInput = new TextField(desk == null ? "" : formatOptionalForEdit(desk.getPhone()));
-        TextField balanceMdlInput = new TextField(desk == null ? "0" : String.valueOf(desk.getBalanceMdl()));
-        TextField balanceRonInput = new TextField(desk == null ? "0" : String.valueOf(desk.getBalanceRon()));
-        TextField balanceEurInput = new TextField(desk == null ? "0" : String.valueOf(desk.getBalanceEur()));
-        TextField balanceUsdInput = new TextField(desk == null ? "0" : String.valueOf(desk.getBalanceUsd()));
-        TextField minLimitInput = new TextField(desk == null ? "" : String.valueOf(desk.getMinLimitMdl()));
-        TextField maxLimitInput = new TextField(desk == null ? "" : String.valueOf(desk.getMaxLimitMdl()));
         SearchableComboBox<CashDeskStatus> statusInput = new SearchableComboBox<>();
         statusInput.getItems().setAll(CashDeskStatus.values());
         if (desk != null) {
             statusInput.setValue(CashDeskStatus.fromDbValue(desk.getStatus()));
         }
+        List<Currency> currencies = loadCurrencies();
+        Map<String, BalanceInputs> balanceInputs = new LinkedHashMap<>();
 
-        grid.add(new Label("Название:"), 0, 0);
-        grid.add(nameInput, 1, 0);
-        grid.add(new Label("Адрес:"), 0, 1);
-        grid.add(addressInput, 1, 1);
-        grid.add(new Label("Телефон:"), 0, 2);
-        grid.add(phoneInput, 1, 2);
-        grid.add(new Label("Баланс MDL:"), 0, 3);
-        grid.add(balanceMdlInput, 1, 3);
-        grid.add(new Label("Баланс RON:"), 0, 4);
-        grid.add(balanceRonInput, 1, 4);
-        grid.add(new Label("Баланс EUR:"), 0, 5);
-        grid.add(balanceEurInput, 1, 5);
-        grid.add(new Label("Баланс USD:"), 0, 6);
-        grid.add(balanceUsdInput, 1, 6);
-        grid.add(new Label("Мин. лимит MDL:"), 0, 7);
-        grid.add(minLimitInput, 1, 7);
-        grid.add(new Label("Макс. лимит MDL:"), 0, 8);
-        grid.add(maxLimitInput, 1, 8);
-        grid.add(new Label("Статус:"), 0, 9);
-        grid.add(statusInput, 1, 9);
+        int row = 0;
+        grid.add(new Label("Название:"), 0, row);
+        grid.add(nameInput, 1, row++);
+        grid.add(new Label("Адрес:"), 0, row);
+        grid.add(addressInput, 1, row++);
+        grid.add(new Label("Телефон:"), 0, row);
+        grid.add(phoneInput, 1, row++);
+        for (Currency currency : currencies) {
+            TextField balanceInput = new TextField(desk == null
+                    ? "0"
+                    : String.valueOf(desk.getBalance(currency.getCode())));
+            TextField minLimitInput = new TextField(desk == null
+                    ? "0"
+                    : String.valueOf(desk.getMinLimit(currency.getCode())));
+            TextField maxLimitInput = new TextField(desk == null
+                    ? "0"
+                    : String.valueOf(desk.getMaxLimit(currency.getCode())));
+            balanceInputs.put(currency.getCode(), new BalanceInputs(balanceInput, minLimitInput, maxLimitInput));
+            grid.add(new Label("Баланс " + currency.getCode() + ":"), 0, row);
+            grid.add(balanceInput, 1, row++);
+            grid.add(new Label("Мин. " + currency.getCode() + ":"), 0, row);
+            grid.add(minLimitInput, 1, row++);
+            grid.add(new Label("Макс. " + currency.getCode() + ":"), 0, row);
+            grid.add(maxLimitInput, 1, row++);
+        }
+        grid.add(new Label("Статус:"), 0, row);
+        grid.add(statusInput, 1, row);
 
         dialog.getDialogPane().setContent(grid);
         ValidationSupport validationSupport = new ValidationSupport();
@@ -554,36 +658,23 @@ public class CashDeskController {
         validationSupport.setErrorDecorationEnabled(false);
         validationSupport.registerValidator(nameInput, Validator.createEmptyValidator("Название кассы обязательно."));
         validationSupport.registerValidator(addressInput, Validator.createEmptyValidator("Адрес кассы обязателен."));
-        validationSupport.registerValidator(balanceMdlInput, Validator.createPredicateValidator(
-                this::isNotNegativeNumber,
-                "Баланс MDL должен быть числом 0 или больше.",
-                Severity.ERROR
-        ));
-        validationSupport.registerValidator(balanceRonInput, Validator.createPredicateValidator(
-                this::isNotNegativeNumber,
-                "Баланс RON должен быть числом 0 или больше.",
-                Severity.ERROR
-        ));
-        validationSupport.registerValidator(balanceEurInput, Validator.createPredicateValidator(
-                this::isNotNegativeNumber,
-                "Баланс EUR должен быть числом 0 или больше.",
-                Severity.ERROR
-        ));
-        validationSupport.registerValidator(balanceUsdInput, Validator.createPredicateValidator(
-                this::isNotNegativeNumber,
-                "Баланс USD должен быть числом 0 или больше.",
-                Severity.ERROR
-        ));
-        validationSupport.registerValidator(minLimitInput, Validator.createPredicateValidator(
-                this::isNotNegativeNumber,
-                "Минимальный лимит должен быть числом 0 или больше.",
-                Severity.ERROR
-        ));
-        validationSupport.registerValidator(maxLimitInput, Validator.createPredicateValidator(
-                this::isNotNegativeNumber,
-                "Максимальный лимит должен быть числом 0 или больше.",
-                Severity.ERROR
-        ));
+        balanceInputs.forEach((code, inputs) -> {
+            validationSupport.registerValidator(inputs.balance(), Validator.createPredicateValidator(
+                    this::isNotNegativeNumber,
+                    "Баланс " + code + " должен быть числом 0 или больше.",
+                    Severity.ERROR
+            ));
+            validationSupport.registerValidator(inputs.minLimit(), Validator.createPredicateValidator(
+                    this::isNotNegativeNumber,
+                    "Минимальный лимит " + code + " должен быть числом 0 или больше.",
+                    Severity.ERROR
+            ));
+            validationSupport.registerValidator(inputs.maxLimit(), Validator.createPredicateValidator(
+                    this::isNotNegativeNumber,
+                    "Максимальный лимит " + code + " должен быть числом 0 или больше.",
+                    Severity.ERROR
+            ));
+        });
         validationSupport.registerValidator(statusInput, Validator.createEmptyValidator("Выберите статус кассы."));
         Node saveNode = dialog.getDialogPane().lookupButton(saveButton);
         saveNode.disableProperty().bind(validationSupport.invalidProperty());
@@ -597,12 +688,7 @@ public class CashDeskController {
                 nameInput.getText().trim(),
                 addressInput.getText().trim(),
                 phoneInput.getText().trim(),
-                balanceMdlInput.getText().trim(),
-                balanceRonInput.getText().trim(),
-                balanceEurInput.getText().trim(),
-                balanceUsdInput.getText().trim(),
-                minLimitInput.getText().trim(),
-                maxLimitInput.getText().trim(),
+                collectBalanceValues(balanceInputs),
                 statusInput.getValue()
         ));
     }
@@ -615,13 +701,17 @@ public class CashDeskController {
             String name,
             String address,
             String phone,
-            String balanceMdl,
-            String balanceRon,
-            String balanceEur,
-            String balanceUsd,
-            String minLimit,
-            String maxLimit,
+            Map<String, BalanceFormValues> balances,
             CashDeskStatus status
     ) {
+    }
+
+    private record BalanceInputs(TextField balance, TextField minLimit, TextField maxLimit) {
+    }
+
+    private record BalanceFormValues(String balance, String minLimit, String maxLimit) {
+    }
+
+    private record ParsedBalance(double amount, double minLimit, double maxLimit) {
     }
 }

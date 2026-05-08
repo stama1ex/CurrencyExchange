@@ -315,6 +315,8 @@ public class IncassationController {
             // Уведомляем об обновлении данных для синхронизации отчетов и баланса
             MainController.notifyReportUpdate();
             AlertUtil.success("Инкассации", "Запись успешно удалена.");
+        } catch (IllegalArgumentException e) {
+            AlertUtil.warning("Валидация", e.getMessage());
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось удалить запись: " + e.getMessage());
         }
@@ -398,27 +400,9 @@ public class IncassationController {
         return ALL_FILTER.equals(value) ? "" : value;
     }
 
-    private String getBalanceColumnName(String currencyCode) {
-        return switch (currencyCode.toUpperCase()) {
-            case "MDL" -> "balance_mdl";
-            case "RON" -> "balance_ron";
-            case "EUR" -> "balance_eur";
-            case "USD" -> "balance_usd";
-            default -> throw new IllegalArgumentException("Неизвестный код валюты: " + currencyCode);
-        };
-    }
-
     private void updateCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, 
                                        double amount, IncassationType type) throws SQLException {
-        String balanceColumn = getBalanceColumnName(currencyCode);
-        String operator = type == IncassationType.TOP_UP ? "+" : "-";
-        String sql = "UPDATE cash_desks SET " + balanceColumn + " = " + balanceColumn + " " + operator + " ? WHERE cash_desk_id = ?";
-        
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setDouble(1, amount);
-            statement.setInt(2, cashDeskId);
-            statement.executeUpdate();
-        }
+        adjustCashDeskBalance(connection, cashDeskId, currencyCode, type == IncassationType.TOP_UP ? amount : -amount);
     }
 
     private void updateCashDeskBalanceIfCompleted(Connection connection, int cashDeskId, String currencyCode,
@@ -430,16 +414,68 @@ public class IncassationController {
 
     private void revertCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, 
                                        double amount, IncassationType type) throws SQLException {
-        String balanceColumn = getBalanceColumnName(currencyCode);
-        // Инвертируем операцию: если была Пополнение, то вычитаем; если была Инкассация, то добавляем
-        String operator = type == IncassationType.TOP_UP ? "-" : "+";
-        String sql = "UPDATE cash_desks SET " + balanceColumn + " = " + balanceColumn + " " + operator + " ? WHERE cash_desk_id = ?";
-        
+        adjustCashDeskBalance(connection, cashDeskId, currencyCode, type == IncassationType.TOP_UP ? -amount : amount);
+    }
+
+    private void adjustCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, double delta) throws SQLException {
+        String selectSql = "SELECT balance FROM cash_desk_balances WHERE cash_desk_id=? AND currency_code=? FOR UPDATE";
+        try (PreparedStatement statement = connection.prepareStatement(selectSql)) {
+            statement.setInt(1, cashDeskId);
+            statement.setString(2, currencyCode);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    if (delta < 0) {
+                        throwInsufficientBalance(currencyCode, 0, -delta);
+                    }
+                    insertCashDeskBalance(connection, cashDeskId, currencyCode, delta);
+                    return;
+                }
+
+                double currentBalance = resultSet.getDouble("balance");
+                double newBalance = currentBalance + delta;
+                if (newBalance < 0) {
+                    throwInsufficientBalance(currencyCode, currentBalance, -delta);
+                }
+                updateCashDeskBalance(connection, cashDeskId, currencyCode, newBalance);
+            }
+        }
+    }
+
+    private void insertCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, double balance) throws SQLException {
+        String sql = "INSERT INTO cash_desk_balances(cash_desk_id, currency_code, balance) VALUES (?, ?, ?)";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setDouble(1, amount);
-            statement.setInt(2, cashDeskId);
+            statement.setInt(1, cashDeskId);
+            statement.setString(2, currencyCode);
+            statement.setDouble(3, balance);
             statement.executeUpdate();
         }
+    }
+
+    private void updateCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, double balance) throws SQLException {
+        String sql = "UPDATE cash_desk_balances SET balance=? WHERE cash_desk_id=? AND currency_code=?";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setDouble(1, balance);
+            statement.setInt(2, cashDeskId);
+            statement.setString(3, currencyCode);
+            statement.executeUpdate();
+        }
+    }
+
+    private void throwInsufficientBalance(String currencyCode, double currentBalance, double requiredAmount) {
+        throw new IllegalArgumentException(
+                "Недостаточно " + currencyCode + " в кассе. Доступно: "
+                        + formatNumber(currentBalance)
+                        + ", нужно списать: "
+                        + formatNumber(requiredAmount)
+                        + "."
+        );
+    }
+
+    private String formatNumber(double value) {
+        return java.math.BigDecimal.valueOf(value)
+                .setScale(2, java.math.RoundingMode.HALF_UP)
+                .stripTrailingZeros()
+                .toPlainString();
     }
 
     private void revertCashDeskBalanceIfCompleted(Connection connection, int cashDeskId, String currencyCode,
@@ -643,7 +679,7 @@ public class IncassationController {
 
     private List<CashDesk> loadCashDesks() {
         try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT cash_desk_id, cash_desk_name, address, min_limit_mdl, max_limit_mdl, status FROM cash_desks ORDER BY cash_desk_name");
+             PreparedStatement statement = connection.prepareStatement("SELECT cash_desk_id, cash_desk_name, address, status FROM cash_desks ORDER BY cash_desk_name");
              ResultSet resultSet = statement.executeQuery()) {
             List<CashDesk> desks = new ArrayList<>();
             while (resultSet.next()) {
@@ -651,8 +687,6 @@ public class IncassationController {
                         resultSet.getInt("cash_desk_id"),
                         resultSet.getString("cash_desk_name"),
                         resultSet.getString("address"),
-                        resultSet.getDouble("min_limit_mdl"),
-                        resultSet.getDouble("max_limit_mdl"),
                         resultSet.getString("status")
                 ));
             }

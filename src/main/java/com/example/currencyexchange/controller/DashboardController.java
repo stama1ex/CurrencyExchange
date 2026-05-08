@@ -233,17 +233,15 @@ public class DashboardController {
         return "SELECT recommendation, COUNT(*) AS total " +
                 "FROM ( " +
                 "SELECT CASE " +
-                "WHEN total_balance_mdl > max_limit_mdl THEN 'Нужна инкассация' " +
-                "WHEN total_balance_mdl < min_limit_mdl THEN 'Нужно пополнение' " +
+                "WHEN BOOL_OR(COALESCE(cdb.balance, 0) > COALESCE(cdb.max_limit, 0)) " +
+                "AND BOOL_OR(COALESCE(cdb.balance, 0) < COALESCE(cdb.min_limit, 0)) THEN 'Нужны инкассация и пополнение' " +
+                "WHEN BOOL_OR(COALESCE(cdb.balance, 0) > COALESCE(cdb.max_limit, 0)) THEN 'Нужна инкассация' " +
+                "WHEN BOOL_OR(COALESCE(cdb.balance, 0) < COALESCE(cdb.min_limit, 0)) THEN 'Нужно пополнение' " +
                 "ELSE 'Норма' END AS recommendation " +
-                "FROM ( " +
-                "SELECT cd.min_limit_mdl, cd.max_limit_mdl, ROUND( " +
-                "cd.balance_mdl + " +
-                "cd.balance_ron * COALESCE((SELECT er.sell_rate_mdl FROM exchange_rates er WHERE er.currency_code = 'RON' ORDER BY er.rate_date DESC, er.rate_id DESC LIMIT 1), 0) + " +
-                "cd.balance_eur * COALESCE((SELECT er.sell_rate_mdl FROM exchange_rates er WHERE er.currency_code = 'EUR' ORDER BY er.rate_date DESC, er.rate_id DESC LIMIT 1), 0) + " +
-                "cd.balance_usd * COALESCE((SELECT er.sell_rate_mdl FROM exchange_rates er WHERE er.currency_code = 'USD' ORDER BY er.rate_date DESC, er.rate_id DESC LIMIT 1), 0), 2) AS total_balance_mdl " +
                 "FROM cash_desks cd " +
-                ") balances " +
+                "CROSS JOIN currencies c " +
+                "LEFT JOIN cash_desk_balances cdb ON cdb.cash_desk_id = cd.cash_desk_id AND cdb.currency_code = c.currency_code " +
+                "GROUP BY cd.cash_desk_id " +
                 ") recommendations " +
                 "GROUP BY recommendation ORDER BY total DESC";
     }
