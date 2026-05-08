@@ -989,6 +989,60 @@
   -fx-text-fill: #475569;
 }
 
+.delete-confirm-popover {
+  -fx-background-color: rgba(255, 255, 255, 0.99);
+  -fx-background-radius: 14px;
+  -fx-border-color: #fecaca;
+  -fx-border-radius: 14px;
+  -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.18), 22, 0.18, 0, 8);
+  -fx-min-width: 252px;
+  -fx-max-width: 280px;
+}
+
+.delete-confirm-icon {
+  -fx-alignment: center;
+  -fx-background-color: #fee2e2;
+  -fx-background-radius: 999px;
+  -fx-min-width: 28px;
+  -fx-pref-width: 28px;
+  -fx-min-height: 28px;
+  -fx-pref-height: 28px;
+}
+
+.delete-confirm-icon .app-icon {
+  -fx-icon-color: #dc2626;
+}
+
+.delete-confirm-title {
+  -fx-text-fill: #0f172a;
+  -fx-font-size: 13px;
+  -fx-font-weight: 800;
+}
+
+.delete-confirm-message {
+  -fx-text-fill: #64748b;
+  -fx-font-size: 12px;
+  -fx-line-spacing: 2px;
+}
+
+.delete-confirm-actions {
+  -fx-padding: 2 0 0 0;
+}
+
+.delete-confirm-popover .button {
+  -fx-font-size: 12px;
+  -fx-min-height: 32px;
+  -fx-padding: 8 11 8 11;
+}
+
+.delete-confirm-cancel {
+  -fx-min-width: 78px;
+}
+
+.delete-confirm-delete {
+  -fx-min-width: 94px;
+}
+
 /* Dark theme */
 .app-root.dark-theme,
 .dark-theme .app-root,
@@ -1557,6 +1611,31 @@
 
 .dark-theme .app-toast-icon-error {
   -fx-border-color: rgba(248, 113, 113, 0.56);
+}
+
+.delete-confirm-popover.dark-theme {
+  -fx-background-color: rgba(15, 23, 42, 0.99);
+  -fx-border-color: rgba(248, 113, 113, 0.48);
+  -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.46), 26, 0.2, 0, 10);
+}
+
+.delete-confirm-popover.dark-theme .delete-confirm-title {
+  -fx-text-fill: #f8fafc;
+}
+
+.delete-confirm-popover.dark-theme .delete-confirm-message {
+  -fx-text-fill: #cbd5e1;
+}
+
+.delete-confirm-popover.dark-theme .delete-confirm-icon {
+  -fx-background-color: transparent;
+  -fx-border-color: rgba(248, 113, 113, 0.56);
+  -fx-border-radius: 999px;
+  -fx-border-width: 1.5px;
+}
+
+.delete-confirm-popover.dark-theme .delete-confirm-icon .app-icon {
+  -fx-icon-color: #fca5a5;
 }
 
 .form-dialog.dark-theme {

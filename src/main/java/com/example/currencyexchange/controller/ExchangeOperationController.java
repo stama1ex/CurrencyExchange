@@ -6,9 +6,11 @@ import com.example.currencyexchange.model.Currency;
 import com.example.currencyexchange.model.ExchangeOperation;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
+import com.example.currencyexchange.util.DeleteConfirmationUtil;
 import com.example.currencyexchange.util.ModalDialogUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -239,13 +241,24 @@ public class ExchangeOperationController {
     }
 
     @FXML
-    private void deleteOperation() {
+    private void deleteOperation(ActionEvent event) {
         ExchangeOperation selected = operationTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
             AlertUtil.warning("Валидация", "Выберите запись для удаления.");
             return;
         }
 
+        Node owner = event != null && event.getSource() instanceof Node node ? node : operationTable;
+        DeleteConfirmationUtil.show(
+                owner,
+                "Удалить операцию?",
+                selected.getCurrencyFrom() + " → " + selected.getCurrencyTo() + " · " +
+                        selected.getOperationDate().format(DATE_TIME_FORMATTER),
+                () -> deleteOperation(selected)
+        );
+    }
+
+    private void deleteOperation(ExchangeOperation selected) {
         try (Connection connection = DatabaseConnection.getConnection()) {
             connection.setAutoCommit(false);
             try {

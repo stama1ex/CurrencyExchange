@@ -6,6 +6,7 @@ import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
 import com.example.currencyexchange.util.CurrencyCodeUtil;
 import com.example.currencyexchange.util.CurrencyFlagUtil;
+import com.example.currencyexchange.util.DeleteConfirmationUtil;
 import com.example.currencyexchange.util.IconUtil;
 import com.example.currencyexchange.util.ModalDialogUtil;
 import javafx.beans.binding.Bindings;
@@ -35,9 +36,14 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public class CurrencyController {
+    private static final Set<String> SYSTEM_CURRENCY_CODES = Set.of("MDL", "RON", "EUR", "USD");
+
     @FXML
     private TextField searchField;
     @FXML
@@ -123,14 +129,35 @@ public class CurrencyController {
         }
     }
 
-    @FXML
-    private void deleteCurrency() {
-        Currency selected = selectedCurrency;
+    private void confirmDeleteCurrency(Currency selected, Node owner) {
         if (selected == null) {
             AlertUtil.warning("Валидация", "Выберите валюту на карточке для удаления.");
             return;
         }
 
+        CurrencyUsage usage;
+        try {
+            usage = loadCurrencyUsage(selected.getCode());
+        } catch (SQLException e) {
+            AlertUtil.error("Ошибка БД", "Не удалось проверить связи валюты: " + e.getMessage());
+            return;
+        }
+
+        boolean systemCurrency = isSystemCurrency(selected.getCode());
+        if (systemCurrency || usage.hasReferences()) {
+            AlertUtil.warning("Валюта используется", buildBlockedDeleteMessage(selected, usage, systemCurrency));
+            return;
+        }
+
+        DeleteConfirmationUtil.show(
+                owner,
+                "Удалить валюту?",
+                selected.getCode() + " · " + selected.getName(),
+                () -> deleteCurrency(selected)
+        );
+    }
+
+    private void deleteCurrency(Currency selected) {
         String sql = "DELETE FROM currencies WHERE currency_code=?";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -140,6 +167,10 @@ public class CurrencyController {
             refreshTable();
             AlertUtil.success("Валюты", "Валюта успешно удалена.");
         } catch (SQLException e) {
+            if ("23503".equals(e.getSQLState())) {
+                AlertUtil.warning("Валюта используется", "Валюту нельзя удалить: на нее уже есть ссылки в операциях, курсах или инкассациях.");
+                return;
+            }
             AlertUtil.error("Ошибка БД", "Не удалось удалить валюту: " + e.getMessage());
         }
     }
@@ -245,8 +276,7 @@ public class CurrencyController {
         IconUtil.setIconOnly(deleteButton, "fas-trash");
         deleteButton.getStyleClass().addAll("icon-action-button", "danger-ghost-button");
         deleteButton.setOnAction(event -> {
-            selectCurrency(currency);
-            deleteCurrency();
+            confirmDeleteCurrency(currency, deleteButton);
             event.consume();
         });
         top.getChildren().addAll(CurrencyFlagUtil.createFlag(currency.getCode()), codeBadge, spacer, editButton, deleteButton);
@@ -291,6 +321,65 @@ public class CurrencyController {
 
     private boolean isKnownCurrencyCode(String code) {
         return CurrencyCodeUtil.isKnownCurrencyCode(code);
+    }
+
+    private boolean isSystemCurrency(String code) {
+        return SYSTEM_CURRENCY_CODES.contains(code == null ? "" : code.trim().toUpperCase());
+    }
+
+    private CurrencyUsage loadCurrencyUsage(String code) throws SQLException {
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            return new CurrencyUsage(
+                    countCurrencyUsage(
+                            connection,
+                            "SELECT COUNT(*) FROM exchange_operations WHERE currency_from=? OR currency_to=?",
+                            code,
+                            code
+                    ),
+                    countCurrencyUsage(
+                            connection,
+                            "SELECT COUNT(*) FROM exchange_rates WHERE currency_code=?",
+                            code
+                    ),
+                    countCurrencyUsage(
+                            connection,
+                            "SELECT COUNT(*) FROM incassations WHERE currency_code=?",
+                            code
+                    )
+            );
+        }
+    }
+
+    private int countCurrencyUsage(Connection connection, String sql, String... values) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (int i = 0; i < values.length; i++) {
+                statement.setString(i + 1, values[i]);
+            }
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? resultSet.getInt(1) : 0;
+            }
+        }
+    }
+
+    private String buildBlockedDeleteMessage(Currency currency, CurrencyUsage usage, boolean systemCurrency) {
+        List<String> reasons = new ArrayList<>();
+        if (systemCurrency) {
+            reasons.add("это системная валюта балансов касс");
+        }
+        if (usage.operations() > 0) {
+            reasons.add("операции обмена: " + usage.operations());
+        }
+        if (usage.rates() > 0) {
+            reasons.add("курсы: " + usage.rates());
+        }
+        if (usage.incassations() > 0) {
+            reasons.add("инкассации: " + usage.incassations());
+        }
+
+        String suffix = systemCurrency
+                ? "MDL, RON, EUR и USD нужны для балансов касс и отчетов."
+                : "Сначала удалите связанные записи.";
+        return currency.getCode() + " нельзя удалить: " + String.join("; ", reasons) + ". " + suffix;
     }
 
     private void selectCurrency(Currency currency) {
@@ -376,5 +465,11 @@ public class CurrencyController {
     }
 
     private record CurrencyForm(String code, String name) {
+    }
+
+    private record CurrencyUsage(int operations, int rates, int incassations) {
+        private boolean hasReferences() {
+            return operations > 0 || rates > 0 || incassations > 0;
+        }
     }
 }

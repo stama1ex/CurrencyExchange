@@ -5,6 +5,7 @@ import com.example.currencyexchange.enums.CashDeskStatus;
 import com.example.currencyexchange.model.CashDesk;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
+import com.example.currencyexchange.util.DeleteConfirmationUtil;
 import com.example.currencyexchange.util.IconUtil;
 import com.example.currencyexchange.util.ModalDialogUtil;
 import javafx.beans.binding.Bindings;
@@ -175,14 +176,21 @@ public class CashDeskController {
         }
     }
 
-    @FXML
-    private void deleteCashDesk() {
-        CashDesk selected = selectedCashDesk;
+    private void confirmDeleteCashDesk(CashDesk selected, Node owner) {
         if (selected == null) {
             AlertUtil.warning("Валидация", "Выберите кассу на карточке для удаления.");
             return;
         }
 
+        DeleteConfirmationUtil.show(
+                owner,
+                "Удалить кассу?",
+                "#" + selected.getId() + " · " + selected.getName(),
+                () -> deleteCashDesk(selected)
+        );
+    }
+
+    private void deleteCashDesk(CashDesk selected) {
         String sql = "DELETE FROM cash_desks WHERE cash_desk_id=?";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -319,8 +327,7 @@ public class CashDeskController {
         IconUtil.setIcon(deleteButton, "fas-trash", 12);
         deleteButton.getStyleClass().addAll("danger-button", "cash-desk-card-action");
         deleteButton.setOnAction(event -> {
-            selectCashDesk(desk);
-            deleteCashDesk();
+            confirmDeleteCashDesk(desk, deleteButton);
             event.consume();
         });
         top.getChildren().addAll(idBadge, spacer, editButton, deleteButton);

@@ -8,9 +8,11 @@ import com.example.currencyexchange.enums.IncassationType;
 import com.example.currencyexchange.model.Incassation;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
+import com.example.currencyexchange.util.DeleteConfirmationUtil;
 import com.example.currencyexchange.util.ModalDialogUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -276,13 +278,23 @@ public class IncassationController {
     }
 
     @FXML
-    private void deleteIncassation() {
+    private void deleteIncassation(ActionEvent event) {
         Incassation selected = incassationTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
             AlertUtil.warning("Валидация", "Выберите запись для удаления.");
             return;
         }
 
+        Node owner = event != null && event.getSource() instanceof Node node ? node : incassationTable;
+        DeleteConfirmationUtil.show(
+                owner,
+                "Удалить запись?",
+                selected.getCurrencyCode() + " · " + selected.getIncassationDate().format(DATE_TIME_FORMATTER),
+                () -> deleteIncassation(selected)
+        );
+    }
+
+    private void deleteIncassation(Incassation selected) {
         try (Connection connection = DatabaseConnection.getConnection()) {
             connection.setAutoCommit(false);
             try {

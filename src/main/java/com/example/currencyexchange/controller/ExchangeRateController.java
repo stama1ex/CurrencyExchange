@@ -6,6 +6,7 @@ import com.example.currencyexchange.model.ExchangeRate;
 import com.example.currencyexchange.service.ExchangeRateAutoUpdateService;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
+import com.example.currencyexchange.util.DeleteConfirmationUtil;
 import com.example.currencyexchange.util.IconUtil;
 import com.example.currencyexchange.util.ModalDialogUtil;
 import javafx.application.Platform;
@@ -168,14 +169,21 @@ public class ExchangeRateController {
         }
     }
 
-    @FXML
-    private void deleteRate() {
-        ExchangeRate selected = selectedRate;
+    private void confirmDeleteRate(ExchangeRate selected, Node owner) {
         if (selected == null) {
             AlertUtil.warning("Валидация", "Выберите курс в карточке даты для удаления.");
             return;
         }
 
+        DeleteConfirmationUtil.show(
+                owner,
+                "Удалить курс?",
+                selected.getCurrencyCode() + " · " + CARD_DATE_FORMAT.format(selected.getRateDate()),
+                () -> deleteRate(selected)
+        );
+    }
+
+    private void deleteRate(ExchangeRate selected) {
         String sql = "DELETE FROM exchange_rates WHERE rate_id=?";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -414,8 +422,7 @@ public class ExchangeRateController {
         IconUtil.setIconOnly(deleteButton, "fas-trash");
         deleteButton.getStyleClass().addAll("icon-action-button", "danger-ghost-button");
         deleteButton.setOnAction(event -> {
-            selectRate(rate);
-            deleteRate();
+            confirmDeleteRate(rate, deleteButton);
             event.consume();
         });
 
