@@ -21,7 +21,9 @@ import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
@@ -45,6 +47,9 @@ import java.util.Map;
 import java.util.Optional;
 
 public class CashDeskController {
+    private static final double CASH_DESK_DIALOG_VIEWPORT_WIDTH = 680;
+    private static final double CASH_DESK_DIALOG_MAX_VIEWPORT_HEIGHT = 560;
+
     private static final String ALL_FILTER = "Все";
 
     @FXML
@@ -598,6 +603,8 @@ public class CashDeskController {
 
     private Optional<CashDeskForm> showCashDeskDialog(CashDesk desk) {
         Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setResizable(true);
+        dialog.getDialogPane().setPrefWidth(CASH_DESK_DIALOG_VIEWPORT_WIDTH + 44);
         ModalDialogUtil.configureFormDialog(
                 dialog,
                 desk == null ? "Добавить кассу" : "Изменить кассу",
@@ -612,6 +619,13 @@ public class CashDeskController {
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(10));
+        grid.getStyleClass().add("cash-desk-form-grid");
+        ColumnConstraints labelColumn = new ColumnConstraints();
+        labelColumn.setMinWidth(112);
+        ColumnConstraints fieldColumn = new ColumnConstraints();
+        fieldColumn.setHgrow(Priority.ALWAYS);
+        fieldColumn.setFillWidth(true);
+        grid.getColumnConstraints().setAll(labelColumn, fieldColumn);
 
         TextField nameInput = new TextField(desk == null ? "" : desk.getName());
         TextField addressInput = new TextField(desk == null ? "" : desk.getAddress());
@@ -623,6 +637,10 @@ public class CashDeskController {
         }
         List<Currency> currencies = loadCurrencies();
         Map<String, BalanceInputs> balanceInputs = new LinkedHashMap<>();
+        nameInput.setMaxWidth(Double.MAX_VALUE);
+        addressInput.setMaxWidth(Double.MAX_VALUE);
+        phoneInput.setMaxWidth(Double.MAX_VALUE);
+        statusInput.setMaxWidth(Double.MAX_VALUE);
 
         int row = 0;
         grid.add(new Label("Название:"), 0, row);
@@ -631,6 +649,15 @@ public class CashDeskController {
         grid.add(addressInput, 1, row++);
         grid.add(new Label("Телефон:"), 0, row);
         grid.add(phoneInput, 1, row++);
+        grid.add(new Label("Статус:"), 0, row);
+        grid.add(statusInput, 1, row++);
+
+        Label limitsTitle = new Label("Лимиты по валютам");
+        limitsTitle.getStyleClass().add("cash-desk-form-section-title");
+        grid.add(limitsTitle, 0, row++, 2, 1);
+
+        GridPane limitsGrid = createBalancesFormGrid();
+        int limitsRow = 1;
         for (Currency currency : currencies) {
             TextField balanceInput = new TextField(desk == null
                     ? "0"
@@ -641,18 +668,31 @@ public class CashDeskController {
             TextField maxLimitInput = new TextField(desk == null
                     ? "0"
                     : String.valueOf(desk.getMaxLimit(currency.getCode())));
+            configureMoneyField(balanceInput);
+            configureMoneyField(minLimitInput);
+            configureMoneyField(maxLimitInput);
             balanceInputs.put(currency.getCode(), new BalanceInputs(balanceInput, minLimitInput, maxLimitInput));
-            grid.add(new Label("Баланс " + currency.getCode() + ":"), 0, row);
-            grid.add(balanceInput, 1, row++);
-            grid.add(new Label("Мин. " + currency.getCode() + ":"), 0, row);
-            grid.add(minLimitInput, 1, row++);
-            grid.add(new Label("Макс. " + currency.getCode() + ":"), 0, row);
-            grid.add(maxLimitInput, 1, row++);
-        }
-        grid.add(new Label("Статус:"), 0, row);
-        grid.add(statusInput, 1, row);
 
-        dialog.getDialogPane().setContent(grid);
+            Label currencyLabel = new Label(currency.getCode());
+            currencyLabel.getStyleClass().add("cash-desk-currency-code");
+            limitsGrid.add(currencyLabel, 0, limitsRow);
+            limitsGrid.add(balanceInput, 1, limitsRow);
+            limitsGrid.add(minLimitInput, 2, limitsRow);
+            limitsGrid.add(maxLimitInput, 3, limitsRow);
+            limitsRow++;
+        }
+        GridPane.setHgrow(limitsGrid, Priority.ALWAYS);
+        grid.add(limitsGrid, 0, row++, 2, 1);
+
+        ScrollPane formScrollPane = new ScrollPane(grid);
+        formScrollPane.setFitToWidth(true);
+        formScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        formScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        formScrollPane.setPrefViewportWidth(CASH_DESK_DIALOG_VIEWPORT_WIDTH);
+        formScrollPane.setPrefViewportHeight(calculateDialogViewportHeight(currencies.size()));
+        formScrollPane.getStyleClass().addAll("content-scroll", "cash-desk-form-scroll");
+
+        dialog.getDialogPane().setContent(formScrollPane);
         ValidationSupport validationSupport = new ValidationSupport();
         validationSupport.setValidationDecorator(null);
         validationSupport.setErrorDecorationEnabled(false);
@@ -691,6 +731,54 @@ public class CashDeskController {
                 collectBalanceValues(balanceInputs),
                 statusInput.getValue()
         ));
+    }
+
+    private GridPane createBalancesFormGrid() {
+        GridPane limitsGrid = new GridPane();
+        limitsGrid.setHgap(8);
+        limitsGrid.setVgap(8);
+        limitsGrid.setMaxWidth(Double.MAX_VALUE);
+        limitsGrid.getStyleClass().add("cash-desk-currency-grid");
+
+        ColumnConstraints currencyColumn = new ColumnConstraints();
+        currencyColumn.setMinWidth(78);
+        currencyColumn.setPrefWidth(82);
+        limitsGrid.getColumnConstraints().setAll(
+                currencyColumn,
+                createMoneyColumnConstraints(),
+                createMoneyColumnConstraints(),
+                createMoneyColumnConstraints()
+        );
+
+        addGridHeader(limitsGrid, "Валюта", 0);
+        addGridHeader(limitsGrid, "Баланс", 1);
+        addGridHeader(limitsGrid, "Мин.", 2);
+        addGridHeader(limitsGrid, "Макс.", 3);
+        return limitsGrid;
+    }
+
+    private ColumnConstraints createMoneyColumnConstraints() {
+        ColumnConstraints column = new ColumnConstraints();
+        column.setHgrow(Priority.ALWAYS);
+        column.setFillWidth(true);
+        column.setMinWidth(112);
+        return column;
+    }
+
+    private void addGridHeader(GridPane grid, String text, int column) {
+        Label header = new Label(text);
+        header.getStyleClass().add("cash-desk-grid-header");
+        grid.add(header, column, 0);
+    }
+
+    private void configureMoneyField(TextField field) {
+        field.setMaxWidth(Double.MAX_VALUE);
+        field.getStyleClass().add("cash-desk-money-field");
+        GridPane.setHgrow(field, Priority.ALWAYS);
+    }
+
+    private double calculateDialogViewportHeight(int currenciesCount) {
+        return Math.min(CASH_DESK_DIALOG_MAX_VIEWPORT_HEIGHT, 260 + Math.max(currenciesCount, 1) * 42);
     }
 
     private String formatOptionalForEdit(String value) {

@@ -635,6 +635,49 @@
   -fx-font-weight: 800;
 }
 
+.cash-desk-form-grid {
+  -fx-padding: 10;
+}
+
+.cash-desk-form-scroll {
+  -fx-background-color: transparent;
+  -fx-border-color: transparent;
+}
+
+.cash-desk-form-section-title {
+  -fx-text-fill: #0f172a;
+  -fx-font-size: 13px;
+  -fx-font-weight: 800;
+  -fx-padding: 8 0 2 0;
+}
+
+.cash-desk-currency-grid {
+  -fx-background-color: #f8fafc;
+  -fx-background-radius: 12px;
+  -fx-border-color: #e2e8f0;
+  -fx-border-radius: 12px;
+  -fx-padding: 12;
+}
+
+.cash-desk-grid-header {
+  -fx-text-fill: #64748b;
+  -fx-font-size: 11px;
+  -fx-font-weight: 800;
+}
+
+.cash-desk-currency-code {
+  -fx-background-color: #e0f2fe;
+  -fx-background-radius: 8px;
+  -fx-text-fill: #075985;
+  -fx-font-size: 12px;
+  -fx-font-weight: 800;
+  -fx-padding: 7 10 7 10;
+}
+
+.cash-desk-money-field {
+  -fx-min-width: 112px;
+}
+
 .rate-groups-list {
   -fx-background-color: transparent;
 }
@@ -1429,6 +1472,26 @@
 .dark-theme .currency-flag-fallback,
 .dark-theme .cash-desk-limit-title {
   -fx-text-fill: #94a3b8;
+}
+
+.dialog-pane.form-dialog.dark-theme .cash-desk-form-section-title {
+  -fx-text-fill: #f8fafc;
+}
+
+.dialog-pane.form-dialog.dark-theme .cash-desk-currency-grid {
+  -fx-background-color: #0b1220;
+  -fx-border-color: rgba(148, 163, 184, 0.28);
+}
+
+.dialog-pane.form-dialog.dark-theme .cash-desk-grid-header {
+  -fx-text-fill: #94a3b8;
+}
+
+.dialog-pane.form-dialog.dark-theme .cash-desk-currency-code {
+  -fx-background-color: transparent;
+  -fx-border-color: rgba(56, 189, 248, 0.36);
+  -fx-border-radius: 8px;
+  -fx-text-fill: #7dd3fc;
 }
 
 .dark-theme .exchange-rate-row:hover {

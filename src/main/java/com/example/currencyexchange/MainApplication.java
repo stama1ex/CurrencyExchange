@@ -17,9 +17,12 @@ public class MainApplication extends Application {
         Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
 
         FXMLLoader fxmlLoader = new FXMLLoader(MainApplication.class.getResource("main-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 1400, 900);
+        Scene scene = new Scene(fxmlLoader.load(), 1920, 1080);
         stage.setTitle("Сеть касс обмена валют");
         stage.setScene(scene);
+        stage.setMaximized(true);
+        stage.setFullScreenExitHint("");
+        stage.setFullScreen(true);
         stage.show();
 
         exchangeRateAutoUpdateService = new ExchangeRateAutoUpdateService();
