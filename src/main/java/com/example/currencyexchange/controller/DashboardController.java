@@ -252,20 +252,15 @@ public class DashboardController {
         }
 
         alertsContainer.getChildren().clear();
-        LocalDate today = ExchangeRateAutoUpdateService.todayInAppZone();
-        LocalDate startDate = today.minusDays(6);
         String sql = "SELECT cd.cash_desk_name, cd.address, COUNT(eo.operation_id) AS total_ops " +
                 "FROM cash_desks cd " +
                 "LEFT JOIN exchange_operations eo " +
                 "ON eo.cash_desk_id = cd.cash_desk_id " +
-                "AND eo.operation_date::date BETWEEN ? AND ? " +
                 "GROUP BY cd.cash_desk_id, cd.cash_desk_name, cd.address " +
                 "ORDER BY total_ops DESC, cd.cash_desk_name " +
                 "LIMIT 5";
 
         try (PreparedStatement st = conn.prepareStatement(sql)) {
-            st.setDate(1, Date.valueOf(startDate));
-            st.setDate(2, Date.valueOf(today));
             try (ResultSet rs = st.executeQuery()) {
                 boolean hasRows = false;
                 boolean hasNonZero = false;
@@ -283,7 +278,7 @@ public class DashboardController {
                 }
                 if (!hasRows || !hasNonZero) {
                     alertsContainer.getChildren().clear();
-                    alertsContainer.getChildren().add(createEmptyState("Нет операций за последние 7 дней."));
+                    alertsContainer.getChildren().add(createEmptyState("Нет операций в базе данных."));
                 }
             }
         } catch (SQLException ignored) {

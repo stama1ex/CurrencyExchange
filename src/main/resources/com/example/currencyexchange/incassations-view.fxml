@@ -55,6 +55,8 @@
                 <graphic><FontIcon iconLiteral="fas-trash" iconSize="12" styleClass="app-icon"/></graphic>
             </Button>
             <Region HBox.hgrow="ALWAYS"/>
+            <Label text="Тип" styleClass="filter-label"/>
+            <SearchableComboBox fx:id="filterTypeBox" prefWidth="180" promptText="Все"/>
             <Label text="Статус" styleClass="filter-label"/>
             <SearchableComboBox fx:id="filterStatusBox" prefWidth="180" promptText="Все"/>
         </HBox>

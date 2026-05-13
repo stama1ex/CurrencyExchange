@@ -117,7 +117,7 @@
             <Label text="Топ касс по операциям" styleClass="section-title">
                 <graphic><FontIcon iconLiteral="fas-exchange-alt" iconSize="14" styleClass="app-icon"/></graphic>
             </Label>
-            <Label text="Последние 7 дней" styleClass="section-subtitle"/>
+            <Label text="За все время" styleClass="section-subtitle"/>
         </VBox>
         <VBox fx:id="alertsContainer" spacing="12"/>
     </VBox>

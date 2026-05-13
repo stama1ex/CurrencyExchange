@@ -75,6 +75,8 @@ public class IncassationController {
 
     @FXML
     private SearchableComboBox<String> filterStatusBox;
+    @FXML
+    private SearchableComboBox<String> filterTypeBox;
 
     private final ObservableList<Incassation> data = FXCollections.observableArrayList();
 
@@ -145,7 +147,11 @@ public class IncassationController {
 
         filterStatusBox.getItems().setAll(loadStatusFilterOptions());
         filterStatusBox.getSelectionModel().selectFirst();
-        filterStatusBox.valueProperty().addListener((obs, oldVal, newVal) -> filterByStatus());
+        filterStatusBox.valueProperty().addListener((obs, oldVal, newVal) -> applyFilters());
+
+        filterTypeBox.getItems().setAll(loadTypeFilterOptions());
+        filterTypeBox.getSelectionModel().selectFirst();
+        filterTypeBox.valueProperty().addListener((obs, oldVal, newVal) -> applyFilters());
 
         incassationTable.setItems(data);
         refreshTable();
@@ -324,47 +330,37 @@ public class IncassationController {
 
     @FXML
     private void refreshTable() {
-        data.clear();
-        String sql = "SELECT i.incassation_id, i.cash_desk_id, cd.cash_desk_name, i.incassation_date, i.currency_code, c.currency_name, i.operation_type, i.amount, i.status, i.note " +
-                "FROM incassations i JOIN cash_desks cd ON cd.cash_desk_id = i.cash_desk_id JOIN currencies c ON c.currency_code = i.currency_code ORDER BY i.incassation_id";
-
-        try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
-            while (resultSet.next()) {
-                data.add(new Incassation(
-                        resultSet.getInt("incassation_id"),
-                        resultSet.getInt("cash_desk_id"),
-                        resultSet.getString("cash_desk_name"),
-                        resultSet.getTimestamp("incassation_date").toLocalDateTime(),
-                        resultSet.getString("currency_code"),
-                        resultSet.getString("currency_name"),
-                        resultSet.getString("operation_type"),
-                        resultSet.getDouble("amount"),
-                        resultSet.getString("status"),
-                        resultSet.getString("note")
-                ));
-            }
-        } catch (SQLException e) {
-            AlertUtil.error("Ошибка БД", "Не удалось загрузить инкассации: " + e.getMessage());
-        }
+        applyFilters();
     }
 
-    @FXML
-    private void filterByStatus() {
+    private void applyFilters() {
         String selectedStatus = selectedStatusFilter();
-        if (!ValidationService.isNotBlank(selectedStatus)) {
-            refreshTable();
-            return;
-        }
+        String selectedType = selectedTypeFilter();
 
         data.clear();
-        String sql = "SELECT i.incassation_id, i.cash_desk_id, cd.cash_desk_name, i.incassation_date, i.currency_code, c.currency_name, i.operation_type, i.amount, i.status, i.note " +
-                "FROM incassations i JOIN cash_desks cd ON cd.cash_desk_id = i.cash_desk_id JOIN currencies c ON c.currency_code = i.currency_code WHERE i.status=? ORDER BY i.incassation_id";
+        String baseSql = "SELECT i.incassation_id, i.cash_desk_id, cd.cash_desk_name, i.incassation_date, i.currency_code, c.currency_name, i.operation_type, i.amount, i.status, i.note " +
+                "FROM incassations i JOIN cash_desks cd ON cd.cash_desk_id = i.cash_desk_id JOIN currencies c ON c.currency_code = i.currency_code";
+
+        List<String> conditions = new ArrayList<>();
+        if (ValidationService.isNotBlank(selectedStatus)) {
+            conditions.add("i.status=?");
+        }
+        if (ValidationService.isNotBlank(selectedType)) {
+            conditions.add("i.operation_type=?");
+        }
+
+        String sql = baseSql + (conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions))
+                + " ORDER BY i.incassation_id";
 
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, selectedStatus);
+            int index = 1;
+            if (ValidationService.isNotBlank(selectedStatus)) {
+                statement.setString(index++, selectedStatus);
+            }
+            if (ValidationService.isNotBlank(selectedType)) {
+                statement.setString(index, selectedType);
+            }
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     data.add(new Incassation(
@@ -386,6 +382,11 @@ public class IncassationController {
         }
     }
 
+    @FXML
+    private void filterByStatus() {
+        applyFilters();
+    }
+
     private List<String> loadStatusFilterOptions() {
         List<String> options = new ArrayList<>();
         options.add(ALL_FILTER);
@@ -395,8 +396,22 @@ public class IncassationController {
         return options;
     }
 
+    private List<String> loadTypeFilterOptions() {
+        List<String> options = new ArrayList<>();
+        options.add(ALL_FILTER);
+        for (IncassationType type : IncassationType.values()) {
+            options.add(type.getDbValue());
+        }
+        return options;
+    }
+
     private String selectedStatusFilter() {
         String value = filterStatusBox.getValue();
+        return ALL_FILTER.equals(value) ? "" : value;
+    }
+
+    private String selectedTypeFilter() {
+        String value = filterTypeBox.getValue();
         return ALL_FILTER.equals(value) ? "" : value;
     }
 
@@ -715,6 +730,8 @@ public class IncassationController {
         }
     }
 }
+
+
 
 
 
