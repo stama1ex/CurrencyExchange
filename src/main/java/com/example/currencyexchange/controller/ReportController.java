@@ -82,7 +82,8 @@ public class ReportController {
     private void loadReportInternal(String selected) {
         String sql;
         if (selected.contains("cash_desk_status")) {
-            sql = "SELECT cash_desk_name, address, total_balance_mdl, recommendation FROM cash_desk_status ORDER BY cash_desk_name";
+            sql = "SELECT cash_desk_name AS \"Касса\", address AS \"Адрес\", total_balance_mdl AS \"Итоговый баланс (MDL)\", recommendation AS \"Рекомендация\" " +
+                    "FROM cash_desk_status ORDER BY cash_desk_name";
         } else if (selected.contains("exchange_operations_view")) {
             sql = "SELECT cd.cash_desk_name AS \"Касса\", to_char(eo.operation_date, 'DD.MM.YYYY HH24:MI') AS \"Дата и время\", cf.currency_name AS \"Из валюты\", " +
                     "ct.currency_name AS \"В валюту\", eo.amount_from AS \"Сумма из\", eo.rate AS \"Курс\", eo.amount_to AS \"Сумма в\" " +
@@ -211,6 +212,5 @@ public class ReportController {
         return selectedRows;
     }
 }
-
 
 

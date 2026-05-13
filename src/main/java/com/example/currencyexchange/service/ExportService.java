@@ -23,6 +23,8 @@ interface Exportable {
 }
 
 class CsvExportService implements Exportable {
+    private static final String CSV_DELIMITER = ";";
+
     @Override
     public void export(File file, List<String> headers, ObservableList<ObservableList<String>> rows) throws IOException {
         try (BufferedWriter writer = Files.newBufferedWriter(file.toPath(), StandardCharsets.UTF_8)) {
@@ -37,7 +39,7 @@ class CsvExportService implements Exportable {
     private void writeCsvRow(BufferedWriter writer, List<String> values) throws IOException {
         writer.write(values.stream()
                 .map(this::escapeCsv)
-                .collect(Collectors.joining(",")));
+                .collect(Collectors.joining(CSV_DELIMITER)));
         writer.write(System.lineSeparator());
     }
 
@@ -46,7 +48,7 @@ class CsvExportService implements Exportable {
             return "";
         }
 
-        boolean needsQuotes = value.contains(",")
+        boolean needsQuotes = value.contains(CSV_DELIMITER)
                 || value.contains("\"")
                 || value.contains("\n")
                 || value.contains("\r");
