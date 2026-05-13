@@ -114,10 +114,10 @@
             <String fx:value="section-card"/>
         </styleClass>
         <VBox spacing="4">
-            <Label text="Кассы, требующие внимания" styleClass="section-title">
-                <graphic><FontIcon iconLiteral="fas-exclamation-circle" iconSize="14" styleClass="app-icon"/></graphic>
+            <Label text="Топ касс по операциям" styleClass="section-title">
+                <graphic><FontIcon iconLiteral="fas-exchange-alt" iconSize="14" styleClass="app-icon"/></graphic>
             </Label>
-            <Label text="Вместо большой таблицы — компактная лента приоритетов" styleClass="section-subtitle"/>
+            <Label text="Последние 7 дней" styleClass="section-subtitle"/>
         </VBox>
         <VBox fx:id="alertsContainer" spacing="12"/>
     </VBox>

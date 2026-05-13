@@ -107,7 +107,7 @@ public class DashboardController {
             loadCounts(conn);
             loadOperationsChart(conn);
             loadRecommendationChart(conn);
-            loadAttentionCards(conn);
+            loadTopCashDeskCards(conn);
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось загрузить статистику: " + e.getMessage());
         }
@@ -246,42 +246,59 @@ public class DashboardController {
                 "GROUP BY recommendation ORDER BY total DESC";
     }
 
-    private void loadAttentionCards(Connection conn) {
+    private void loadTopCashDeskCards(Connection conn) {
         if (alertsContainer == null) {
             return;
         }
 
         alertsContainer.getChildren().clear();
-        String sql = "SELECT cash_desk_name, address, total_balance_mdl, recommendation " +
-                "FROM cash_desk_status WHERE recommendation IS NOT NULL ORDER BY cash_desk_name";
+        LocalDate today = ExchangeRateAutoUpdateService.todayInAppZone();
+        LocalDate startDate = today.minusDays(6);
+        String sql = "SELECT cd.cash_desk_name, cd.address, COUNT(eo.operation_id) AS total_ops " +
+                "FROM cash_desks cd " +
+                "LEFT JOIN exchange_operations eo " +
+                "ON eo.cash_desk_id = cd.cash_desk_id " +
+                "AND eo.operation_date::date BETWEEN ? AND ? " +
+                "GROUP BY cd.cash_desk_id, cd.cash_desk_name, cd.address " +
+                "ORDER BY total_ops DESC, cd.cash_desk_name " +
+                "LIMIT 5";
 
-        try (PreparedStatement st = conn.prepareStatement(sql); ResultSet rs = st.executeQuery()) {
-            boolean hasRows = false;
-            while (rs.next()) {
-                hasRows = true;
-                alertsContainer.getChildren().add(createAlertCard(
-                        rs.getString("cash_desk_name"),
-                        rs.getString("address"),
-                        rs.getDouble("total_balance_mdl"),
-                        rs.getString("recommendation")
-                ));
-            }
-            if (!hasRows) {
-                alertsContainer.getChildren().add(createEmptyState("Все кассы работают в нормальном диапазоне."));
+        try (PreparedStatement st = conn.prepareStatement(sql)) {
+            st.setDate(1, Date.valueOf(startDate));
+            st.setDate(2, Date.valueOf(today));
+            try (ResultSet rs = st.executeQuery()) {
+                boolean hasRows = false;
+                boolean hasNonZero = false;
+                while (rs.next()) {
+                    hasRows = true;
+                    int totalOps = rs.getInt("total_ops");
+                    if (totalOps > 0) {
+                        hasNonZero = true;
+                    }
+                    alertsContainer.getChildren().add(createActivityCard(
+                            rs.getString("cash_desk_name"),
+                            rs.getString("address"),
+                            totalOps
+                    ));
+                }
+                if (!hasRows || !hasNonZero) {
+                    alertsContainer.getChildren().clear();
+                    alertsContainer.getChildren().add(createEmptyState("Нет операций за последние 7 дней."));
+                }
             }
         } catch (SQLException ignored) {
-            alertsContainer.getChildren().add(createEmptyState("Панель внимания будет доступна после создания представления cash_desk_status."));
+            alertsContainer.getChildren().add(createEmptyState("Не удалось загрузить данные по операциям."));
         }
     }
 
-    private HBox createAlertCard(String name, String address, double balance, String recommendation) {
+    private HBox createActivityCard(String name, String address, int totalOps) {
         HBox root = new HBox(14);
         root.setAlignment(Pos.CENTER_LEFT);
         root.setPadding(new Insets(14, 16, 14, 16));
         root.getStyleClass().add("attention-card");
 
         Label icon = new Label();
-        IconUtil.setIconOnly(icon, "fas-cash-register");
+        IconUtil.setIconOnly(icon, "fas-exchange-alt");
         icon.getStyleClass().add("attention-icon");
 
         VBox textBox = new VBox(4);
@@ -296,11 +313,9 @@ public class DashboardController {
 
         VBox right = new VBox(8);
         right.setAlignment(Pos.CENTER_RIGHT);
-        Label amount = new Label(String.format("≈ %.2f MDL", balance));
+        Label amount = new Label(String.format("Операций: %d", totalOps));
         amount.getStyleClass().add("attention-balance");
-        Label badge = new Label(recommendation == null || recommendation.isBlank() ? "Норма" : recommendation);
-        badge.getStyleClass().addAll("status-pill", recommendationStyleClass(recommendation));
-        right.getChildren().addAll(amount, badge);
+        right.getChildren().add(amount);
 
         root.getChildren().addAll(icon, textBox, spacer, right);
         return root;
