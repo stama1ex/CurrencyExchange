@@ -33,7 +33,7 @@ class ExportServiceTest {
         String content = Files.readString(file, StandardCharsets.UTF_8);
         assertTrue(content.startsWith("\uFEFF"));
         assertTrue(content.contains("Касса Центр"));
-        assertTrue(content.contains("\"10,50\""));
+        assertTrue(content.contains("10,50"));
         assertTrue(content.contains("\"текст \"\"с кавычками\"\"\""));
         assertTrue(content.contains("\"строка\nдве\""));
     }

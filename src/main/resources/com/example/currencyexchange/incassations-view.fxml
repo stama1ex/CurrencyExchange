@@ -72,5 +72,10 @@
                 <TableColumn fx:id="noteColumn" text="Примечание" prefWidth="240"/>
             </columns>
         </TableView>
+        <HBox styleClass="load-more-bar" spacing="10" alignment="CENTER_RIGHT">
+            <Label fx:id="pageInfoLabel" text="Страница 1 из 1 · записей: 0" styleClass="filter-label"/>
+            <Button fx:id="previousPageButton" text="Назад" onAction="#previousPage" styleClass="secondary-button"/>
+            <Button fx:id="nextPageButton" text="Вперед" onAction="#nextPage" styleClass="secondary-button"/>
+        </HBox>
     </VBox>
 </VBox>

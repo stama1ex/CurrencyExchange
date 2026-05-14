@@ -4,6 +4,7 @@ import com.example.currencyexchange.DatabaseConnection;
 import com.example.currencyexchange.model.CashDesk;
 import com.example.currencyexchange.model.Currency;
 import com.example.currencyexchange.model.ExchangeOperation;
+import com.example.currencyexchange.service.CashDeskBalanceService;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
 import com.example.currencyexchange.util.DeleteConfirmationUtil;
@@ -20,6 +21,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.Button;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -52,6 +54,7 @@ public class ExchangeOperationController {
     private static final String BASE_CURRENCY_CODE = "MDL";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final int PAGE_SIZE = 100;
 
     @FXML
     private TableView<ExchangeOperation> operationTable;
@@ -74,8 +77,19 @@ public class ExchangeOperationController {
 
     @FXML
     private DatePicker filterDatePicker;
+    @FXML
+    private Button previousPageButton;
+    @FXML
+    private Button nextPageButton;
+    @FXML
+    private Label pageInfoLabel;
 
     private final ObservableList<ExchangeOperation> data = FXCollections.observableArrayList();
+    private final CashDeskBalanceService cashDeskBalanceService = new CashDeskBalanceService();
+
+    private int currentPage;
+    private int totalItems;
+    private int totalPages = 1;
 
     @FXML
     public void initialize() {
@@ -96,10 +110,15 @@ public class ExchangeOperationController {
         rateColumn.setCellValueFactory(new PropertyValueFactory<>("rate"));
         amountToColumn.setCellValueFactory(new PropertyValueFactory<>("amountTo"));
 
-        filterDatePicker.valueProperty().addListener((obs, oldVal, newVal) -> applyFilter());
+        filterDatePicker.valueProperty().addListener((obs, oldVal, newVal) -> {
+            currentPage = 0;
+            applyFilter();
+        });
         filterDatePicker.getEditor().textProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal == null || newVal.isBlank()) {
                 filterDatePicker.setValue(null);
+                currentPage = 0;
+                applyFilter();
             }
         });
 
@@ -151,7 +170,7 @@ public class ExchangeOperationController {
                         statement.executeUpdate();
                     }
 
-                    updateExchangeOperationBalances(connection, cashDeskId, currencyFrom, currencyTo, amountFrom, amountTo);
+                    cashDeskBalanceService.applyExchangeOperation(connection, cashDeskId, currencyFrom, currencyTo, amountFrom, amountTo);
                     connection.commit();
                 } catch (SQLException | RuntimeException e) {
                     rollbackQuietly(connection);
@@ -206,10 +225,10 @@ public class ExchangeOperationController {
             try (Connection connection = DatabaseConnection.getConnection()) {
                 connection.setAutoCommit(false);
                 try {
-                    revertExchangeOperationBalances(connection, selected.getCashDeskId(), selected.getCurrencyFrom(),
+                        cashDeskBalanceService.revertExchangeOperation(connection, selected.getCashDeskId(), selected.getCurrencyFrom(),
                             selected.getCurrencyTo(), selected.getAmountFrom(), selected.getAmountTo());
 
-                    updateExchangeOperationBalances(connection, cashDeskId, currencyFrom, currencyTo, amountFrom, amountTo);
+                        cashDeskBalanceService.applyExchangeOperation(connection, cashDeskId, currencyFrom, currencyTo, amountFrom, amountTo);
 
                     String sql = "UPDATE exchange_operations SET cash_desk_id=?, operation_date=?, currency_from=?, currency_to=?, amount_from=?, rate=?, amount_to=? WHERE operation_id=?";
                     try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -262,7 +281,7 @@ public class ExchangeOperationController {
         try (Connection connection = DatabaseConnection.getConnection()) {
             connection.setAutoCommit(false);
             try {
-                revertExchangeOperationBalances(connection, selected.getCashDeskId(), selected.getCurrencyFrom(),
+                cashDeskBalanceService.revertExchangeOperation(connection, selected.getCashDeskId(), selected.getCurrencyFrom(),
                         selected.getCurrencyTo(), selected.getAmountFrom(), selected.getAmountTo());
 
                 String sql = "DELETE FROM exchange_operations WHERE operation_id=?";
@@ -288,17 +307,68 @@ public class ExchangeOperationController {
 
     @FXML
     private void refreshTable() {
+        currentPage = 0;
+        applyFilter();
+    }
+
+    @FXML
+    private void previousPage() {
+        if (currentPage <= 0) {
+            return;
+        }
+        currentPage--;
+        loadOperationsPage();
+    }
+
+    @FXML
+    private void nextPage() {
+        if (currentPage + 1 >= totalPages) {
+            return;
+        }
+        currentPage++;
+        loadOperationsPage();
+    }
+
+    @FXML
+    private void applyFilter() {
+        loadOperationsPage();
+    }
+
+    private void loadOperationsPage() {
         data.clear();
+
+        LocalDate selectedDate = filterDatePicker.getValue();
+        List<Timestamp> dateParams = new ArrayList<>();
+        String whereClause = "";
+        if (selectedDate != null) {
+            whereClause = " WHERE eo.operation_date >= ? AND eo.operation_date < ?";
+            dateParams.add(Timestamp.valueOf(selectedDate.atStartOfDay()));
+            dateParams.add(Timestamp.valueOf(selectedDate.plusDays(1).atStartOfDay()));
+        }
+
+        String countSql = "SELECT COUNT(*) FROM exchange_operations eo" + whereClause;
+        totalItems = countOperations(countSql, dateParams);
+        totalPages = Math.max(1, (int) Math.ceil((double) totalItems / PAGE_SIZE));
+        if (currentPage >= totalPages) {
+            currentPage = Math.max(0, totalPages - 1);
+        }
+
         String sql = "SELECT eo.operation_id, eo.cash_desk_id, cd.cash_desk_name, eo.operation_date, eo.currency_from, cf.currency_name AS currency_from_name, " +
                 "eo.currency_to, ct.currency_name AS currency_to_name, eo.amount_from, eo.rate, eo.amount_to " +
                 "FROM exchange_operations eo " +
                 "JOIN cash_desks cd ON cd.cash_desk_id = eo.cash_desk_id " +
                 "JOIN currencies cf ON cf.currency_code = eo.currency_from " +
                 "JOIN currencies ct ON ct.currency_code = eo.currency_to " +
-                "ORDER BY eo.operation_date DESC, eo.operation_id DESC";
+                whereClause +
+                " ORDER BY eo.operation_date DESC, eo.operation_id DESC LIMIT ? OFFSET ?";
+
         try (Connection connection = DatabaseConnection.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            int index = setDateParameters(statement, dateParams, 1);
+            statement.setInt(index++, PAGE_SIZE);
+            statement.setInt(index, currentPage * PAGE_SIZE);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
                 data.add(new ExchangeOperation(
                         resultSet.getInt("operation_id"),
@@ -314,123 +384,44 @@ public class ExchangeOperationController {
                         resultSet.getDouble("amount_to")
                 ));
             }
+            }
+            updatePaginationControls();
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось загрузить операции: " + e.getMessage());
         }
     }
 
-    @FXML
-    private void applyFilter() {
-        data.clear();
-        LocalDate selectedDate = filterDatePicker.getValue();
-        if (selectedDate == null) {
-            refreshTable();
-            return;
-        }
-
-        String sql =
-                "SELECT eo.operation_id, eo.cash_desk_id, cd.cash_desk_name, eo.operation_date, eo.currency_from, cf.currency_name AS currency_from_name, " +
-                        "eo.currency_to, ct.currency_name AS currency_to_name, eo.amount_from, eo.rate, eo.amount_to " +
-                        "FROM exchange_operations eo " +
-                        "JOIN cash_desks cd ON cd.cash_desk_id = eo.cash_desk_id " +
-                        "JOIN currencies cf ON cf.currency_code = eo.currency_from " +
-                        "JOIN currencies ct ON ct.currency_code = eo.currency_to " +
-                        "WHERE eo.operation_date >= ? AND eo.operation_date < ? " +
-                        "ORDER BY eo.operation_date DESC, eo.operation_id DESC";
-
+    private int countOperations(String sql, List<Timestamp> dateParams) {
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setTimestamp(1, Timestamp.valueOf(selectedDate.atStartOfDay()));
-            statement.setTimestamp(2, Timestamp.valueOf(selectedDate.plusDays(1).atStartOfDay()));
-
+            setDateParameters(statement, dateParams, 1);
             try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    data.add(new ExchangeOperation(
-                            resultSet.getInt("operation_id"),
-                            resultSet.getInt("cash_desk_id"),
-                                resultSet.getString("cash_desk_name"),
-                            resultSet.getTimestamp("operation_date").toLocalDateTime(),
-                            resultSet.getString("currency_from"),
-                                resultSet.getString("currency_from_name"),
-                            resultSet.getString("currency_to"),
-                                resultSet.getString("currency_to_name"),
-                            resultSet.getDouble("amount_from"),
-                            resultSet.getDouble("rate"),
-                            resultSet.getDouble("amount_to")
-                    ));
-                }
+                return resultSet.next() ? resultSet.getInt(1) : 0;
             }
-        } catch (NumberFormatException e) {
-            AlertUtil.warning("Валидация", "Некорректные данные фильтра.");
         } catch (SQLException e) {
-            AlertUtil.error("Ошибка БД", "Не удалось применить фильтр: " + e.getMessage());
+            AlertUtil.error("Ошибка БД", "Не удалось посчитать операции: " + e.getMessage());
+            return 0;
         }
     }
 
-    private void updateExchangeOperationBalances(Connection connection, int cashDeskId, String currencyFrom,
-                                                 String currencyTo, double amountFrom, double amountTo) throws SQLException {
-        adjustCashDeskBalance(connection, cashDeskId, currencyFrom, -amountFrom);
-        adjustCashDeskBalance(connection, cashDeskId, currencyTo, amountTo);
-    }
-
-    private void revertExchangeOperationBalances(Connection connection, int cashDeskId, String currencyFrom,
-                                                 String currencyTo, double amountFrom, double amountTo) throws SQLException {
-        adjustCashDeskBalance(connection, cashDeskId, currencyFrom, amountFrom);
-        adjustCashDeskBalance(connection, cashDeskId, currencyTo, -amountTo);
-    }
-
-    private void adjustCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, double delta) throws SQLException {
-        String selectSql = "SELECT balance FROM cash_desk_balances WHERE cash_desk_id=? AND currency_code=? FOR UPDATE";
-        try (PreparedStatement statement = connection.prepareStatement(selectSql)) {
-            statement.setInt(1, cashDeskId);
-            statement.setString(2, currencyCode);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (!resultSet.next()) {
-                    if (delta < 0) {
-                        throwInsufficientBalance(currencyCode, 0, -delta);
-                    }
-                    insertCashDeskBalance(connection, cashDeskId, currencyCode, delta);
-                    return;
-                }
-
-                double currentBalance = resultSet.getDouble("balance");
-                double newBalance = currentBalance + delta;
-                if (newBalance < 0) {
-                    throwInsufficientBalance(currencyCode, currentBalance, -delta);
-                }
-                updateCashDeskBalance(connection, cashDeskId, currencyCode, newBalance);
-            }
+    private int setDateParameters(PreparedStatement statement, List<Timestamp> dateParams, int startIndex) throws SQLException {
+        int index = startIndex;
+        for (Timestamp timestamp : dateParams) {
+            statement.setTimestamp(index++, timestamp);
         }
+        return index;
     }
 
-    private void insertCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, double balance) throws SQLException {
-        String sql = "INSERT INTO cash_desk_balances(cash_desk_id, currency_code, balance) VALUES (?, ?, ?)";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, cashDeskId);
-            statement.setString(2, currencyCode);
-            statement.setDouble(3, balance);
-            statement.executeUpdate();
+    private void updatePaginationControls() {
+        if (pageInfoLabel != null) {
+            pageInfoLabel.setText("Страница " + (currentPage + 1) + " из " + totalPages + " · записей: " + totalItems);
         }
-    }
-
-    private void updateCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, double balance) throws SQLException {
-        String sql = "UPDATE cash_desk_balances SET balance=? WHERE cash_desk_id=? AND currency_code=?";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setDouble(1, balance);
-            statement.setInt(2, cashDeskId);
-            statement.setString(3, currencyCode);
-            statement.executeUpdate();
+        if (previousPageButton != null) {
+            previousPageButton.setDisable(currentPage <= 0);
         }
-    }
-
-    private void throwInsufficientBalance(String currencyCode, double currentBalance, double requiredAmount) {
-        throw new IllegalArgumentException(
-                "Недостаточно " + currencyCode + " в кассе. Доступно: "
-                        + formatNumber(currentBalance, 2)
-                        + ", нужно списать: "
-                        + formatNumber(requiredAmount, 2)
-                        + "."
-        );
+        if (nextPageButton != null) {
+            nextPageButton.setDisable(currentPage + 1 >= totalPages);
+        }
     }
 
     private void rollbackQuietly(Connection connection) {

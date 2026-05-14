@@ -8,8 +8,10 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextField;
 import javafx.stage.FileChooser;
 import org.controlsfx.control.CheckComboBox;
 import org.controlsfx.control.SearchableComboBox;
@@ -22,6 +24,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class ReportController {
     @FXML
@@ -29,9 +32,14 @@ public class ReportController {
     @FXML
     private CheckComboBox<String> columnSelectorBox;
     @FXML
+    private TextField reportSearchField;
+    @FXML
+    private Label reportMetaLabel;
+    @FXML
     private TableView<ObservableList<String>> reportTable;
 
     private final ObservableList<ObservableList<String>> data = FXCollections.observableArrayList();
+    private final ObservableList<ObservableList<String>> sourceData = FXCollections.observableArrayList();
     private final List<String> headers = new ArrayList<>();
     private final ExportService exportService = new ExportService();
 
@@ -43,7 +51,11 @@ public class ReportController {
         columnSelectorBox.setTitle("Все");
         columnSelectorBox.setShowCheckedCount(true);
         columnSelectorBox.getCheckModel().getCheckedItems()
-                .addListener((ListChangeListener<String>) change -> applyColumnSelection());
+                .addListener((ListChangeListener<String>) change -> {
+                    applyColumnSelection();
+                    applyReportFilter();
+                });
+        reportSearchField.textProperty().addListener((obs, oldVal, newVal) -> applyReportFilter());
         
         reportTypeBox.getItems().addAll(
                 "Статус касс (cash_desk_status)",
@@ -102,6 +114,7 @@ public class ReportController {
         }
 
         data.clear();
+        sourceData.clear();
         headers.clear();
         reportTable.getColumns().clear();
 
@@ -133,8 +146,10 @@ public class ReportController {
                     Object value = resultSet.getObject(i);
                     row.add(value == null ? "" : value.toString());
                 }
-                data.add(row);
+                sourceData.add(row);
             }
+
+            applyReportFilter();
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось загрузить отчет: " + e.getMessage());
         }
@@ -179,6 +194,55 @@ public class ReportController {
         for (TableColumn<ObservableList<String>, ?> column : reportTable.getColumns()) {
             column.setVisible(selectedHeaders.contains(column.getText()));
         }
+    }
+
+    private void applyReportFilter() {
+        String query = normalizeFilterQuery(reportSearchField.getText());
+        List<Integer> selectedColumnIndexes = getSelectedColumnIndexes();
+
+        data.clear();
+        if (query.isEmpty()) {
+            data.addAll(sourceData);
+        } else {
+            for (ObservableList<String> row : sourceData) {
+                if (rowMatchesQuery(row, selectedColumnIndexes, query)) {
+                    data.add(row);
+                }
+            }
+        }
+
+        updateReportMeta();
+    }
+
+    private boolean rowMatchesQuery(ObservableList<String> row, List<Integer> selectedColumnIndexes, String query) {
+        if (selectedColumnIndexes.isEmpty()) {
+            return false;
+        }
+
+        for (int index : selectedColumnIndexes) {
+            String value = index < row.size() ? row.get(index) : "";
+            if (value != null && value.toLowerCase(Locale.ROOT).contains(query)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String normalizeFilterQuery(String query) {
+        if (query == null) {
+            return "";
+        }
+        return query.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private void updateReportMeta() {
+        if (reportMetaLabel == null) {
+            return;
+        }
+
+        int visible = data.size();
+        int total = sourceData.size();
+        reportMetaLabel.setText("Показано строк: " + visible + " / " + total);
     }
 
     private List<Integer> getSelectedColumnIndexes() {

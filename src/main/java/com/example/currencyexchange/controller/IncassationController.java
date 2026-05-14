@@ -6,6 +6,7 @@ import com.example.currencyexchange.model.Currency;
 import com.example.currencyexchange.enums.IncassationStatus;
 import com.example.currencyexchange.enums.IncassationType;
 import com.example.currencyexchange.model.Incassation;
+import com.example.currencyexchange.service.CashDeskBalanceService;
 import com.example.currencyexchange.service.ValidationService;
 import com.example.currencyexchange.util.AlertUtil;
 import com.example.currencyexchange.util.DeleteConfirmationUtil;
@@ -22,6 +23,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.Button;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -53,6 +55,7 @@ public class IncassationController {
     private static final String ALL_FILTER = "Все";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final int PAGE_SIZE = 100;
 
     @FXML
     private TableView<Incassation> incassationTable;
@@ -77,8 +80,19 @@ public class IncassationController {
     private SearchableComboBox<String> filterStatusBox;
     @FXML
     private SearchableComboBox<String> filterTypeBox;
+    @FXML
+    private Button previousPageButton;
+    @FXML
+    private Button nextPageButton;
+    @FXML
+    private Label pageInfoLabel;
 
     private final ObservableList<Incassation> data = FXCollections.observableArrayList();
+    private final CashDeskBalanceService cashDeskBalanceService = new CashDeskBalanceService();
+
+    private int currentPage;
+    private int totalItems;
+    private int totalPages = 1;
 
     @FXML
     public void initialize() {
@@ -147,11 +161,17 @@ public class IncassationController {
 
         filterStatusBox.getItems().setAll(loadStatusFilterOptions());
         filterStatusBox.getSelectionModel().selectFirst();
-        filterStatusBox.valueProperty().addListener((obs, oldVal, newVal) -> applyFilters());
+        filterStatusBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+            currentPage = 0;
+            applyFilters();
+        });
 
         filterTypeBox.getItems().setAll(loadTypeFilterOptions());
         filterTypeBox.getSelectionModel().selectFirst();
-        filterTypeBox.valueProperty().addListener((obs, oldVal, newVal) -> applyFilters());
+        filterTypeBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+            currentPage = 0;
+            applyFilters();
+        });
 
         incassationTable.setItems(data);
         refreshTable();
@@ -197,7 +217,14 @@ public class IncassationController {
                         statement.executeUpdate();
                     }
 
-                    updateCashDeskBalanceIfCompleted(connection, cashDeskId, currencyCode, amount, form.type(), form.status());
+                    cashDeskBalanceService.applyIncassationIfCompleted(
+                            connection,
+                            cashDeskId,
+                            currencyCode,
+                            amount,
+                            form.type(),
+                            form.status()
+                    );
                     connection.commit();
                 } catch (SQLException | RuntimeException e) {
                     rollbackQuietly(connection);
@@ -249,10 +276,23 @@ public class IncassationController {
             try (Connection connection = DatabaseConnection.getConnection()) {
                 connection.setAutoCommit(false);
                 try {
-                    revertCashDeskBalanceIfCompleted(connection, selected.getCashDeskId(), selected.getCurrencyCode(),
-                            selected.getAmount(), IncassationType.fromDbValue(selected.getOperationType()), selected.getStatus());
+                        cashDeskBalanceService.revertIncassationIfCompleted(
+                            connection,
+                            selected.getCashDeskId(),
+                            selected.getCurrencyCode(),
+                            selected.getAmount(),
+                            IncassationType.fromDbValue(selected.getOperationType()),
+                            IncassationStatus.fromDbValue(selected.getStatus())
+                        );
 
-                    updateCashDeskBalanceIfCompleted(connection, cashDeskId, currencyCode, amount, form.type(), form.status());
+                        cashDeskBalanceService.applyIncassationIfCompleted(
+                            connection,
+                            cashDeskId,
+                            currencyCode,
+                            amount,
+                            form.type(),
+                            form.status()
+                        );
 
                     String sql = "UPDATE incassations SET cash_desk_id=?, incassation_date=?, currency_code=?, operation_type=?, amount=?, status=?, note=? WHERE incassation_id=?";
                     try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -304,8 +344,14 @@ public class IncassationController {
         try (Connection connection = DatabaseConnection.getConnection()) {
             connection.setAutoCommit(false);
             try {
-                revertCashDeskBalanceIfCompleted(connection, selected.getCashDeskId(), selected.getCurrencyCode(),
-                        selected.getAmount(), IncassationType.fromDbValue(selected.getOperationType()), selected.getStatus());
+                cashDeskBalanceService.revertIncassationIfCompleted(
+                    connection,
+                    selected.getCashDeskId(),
+                    selected.getCurrencyCode(),
+                    selected.getAmount(),
+                    IncassationType.fromDbValue(selected.getOperationType()),
+                    IncassationStatus.fromDbValue(selected.getStatus())
+                );
 
                 String sql = "DELETE FROM incassations WHERE incassation_id=?";
                 try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -330,6 +376,25 @@ public class IncassationController {
 
     @FXML
     private void refreshTable() {
+        currentPage = 0;
+        applyFilters();
+    }
+
+    @FXML
+    private void previousPage() {
+        if (currentPage <= 0) {
+            return;
+        }
+        currentPage--;
+        applyFilters();
+    }
+
+    @FXML
+    private void nextPage() {
+        if (currentPage + 1 >= totalPages) {
+            return;
+        }
+        currentPage++;
         applyFilters();
     }
 
@@ -338,29 +403,38 @@ public class IncassationController {
         String selectedType = selectedTypeFilter();
 
         data.clear();
-        String baseSql = "SELECT i.incassation_id, i.cash_desk_id, cd.cash_desk_name, i.incassation_date, i.currency_code, c.currency_name, i.operation_type, i.amount, i.status, i.note " +
-                "FROM incassations i JOIN cash_desks cd ON cd.cash_desk_id = i.cash_desk_id JOIN currencies c ON c.currency_code = i.currency_code";
+        String baseSql = "FROM incassations i JOIN cash_desks cd ON cd.cash_desk_id = i.cash_desk_id JOIN currencies c ON c.currency_code = i.currency_code";
 
         List<String> conditions = new ArrayList<>();
+        List<String> parameters = new ArrayList<>();
         if (ValidationService.isNotBlank(selectedStatus)) {
             conditions.add("i.status=?");
+            parameters.add(selectedStatus);
         }
         if (ValidationService.isNotBlank(selectedType)) {
             conditions.add("i.operation_type=?");
+            parameters.add(selectedType);
         }
 
-        String sql = baseSql + (conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions))
-                + " ORDER BY i.incassation_id";
+        String whereClause = conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
+        String countSql = "SELECT COUNT(*) " + baseSql + whereClause;
+        totalItems = countIncassations(countSql, parameters);
+        totalPages = Math.max(1, (int) Math.ceil((double) totalItems / PAGE_SIZE));
+        if (currentPage >= totalPages) {
+            currentPage = Math.max(0, totalPages - 1);
+        }
+
+        String sql = "SELECT i.incassation_id, i.cash_desk_id, cd.cash_desk_name, i.incassation_date, i.currency_code, c.currency_name, i.operation_type, i.amount, i.status, i.note "
+                + baseSql
+                + whereClause
+                + " ORDER BY i.incassation_date DESC, i.incassation_id DESC LIMIT ? OFFSET ?";
 
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            int index = 1;
-            if (ValidationService.isNotBlank(selectedStatus)) {
-                statement.setString(index++, selectedStatus);
-            }
-            if (ValidationService.isNotBlank(selectedType)) {
-                statement.setString(index, selectedType);
-            }
+            int index = setStringParameters(statement, parameters, 1);
+            statement.setInt(index++, PAGE_SIZE);
+            statement.setInt(index, currentPage * PAGE_SIZE);
+
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     data.add(new Incassation(
@@ -377,14 +451,43 @@ public class IncassationController {
                     ));
                 }
             }
+            updatePaginationControls();
         } catch (SQLException e) {
             AlertUtil.error("Ошибка БД", "Не удалось применить фильтр: " + e.getMessage());
         }
     }
 
-    @FXML
-    private void filterByStatus() {
-        applyFilters();
+    private int countIncassations(String sql, List<String> parameters) {
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            setStringParameters(statement, parameters, 1);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() ? resultSet.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            AlertUtil.error("Ошибка БД", "Не удалось посчитать инкассации: " + e.getMessage());
+            return 0;
+        }
+    }
+
+    private int setStringParameters(PreparedStatement statement, List<String> parameters, int startIndex) throws SQLException {
+        int index = startIndex;
+        for (String parameter : parameters) {
+            statement.setString(index++, parameter);
+        }
+        return index;
+    }
+
+    private void updatePaginationControls() {
+        if (pageInfoLabel != null) {
+            pageInfoLabel.setText("Страница " + (currentPage + 1) + " из " + totalPages + " · записей: " + totalItems);
+        }
+        if (previousPageButton != null) {
+            previousPageButton.setDisable(currentPage <= 0);
+        }
+        if (nextPageButton != null) {
+            nextPageButton.setDisable(currentPage + 1 >= totalPages);
+        }
     }
 
     private List<String> loadStatusFilterOptions() {
@@ -413,91 +516,6 @@ public class IncassationController {
     private String selectedTypeFilter() {
         String value = filterTypeBox.getValue();
         return ALL_FILTER.equals(value) ? "" : value;
-    }
-
-    private void updateCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, 
-                                       double amount, IncassationType type) throws SQLException {
-        adjustCashDeskBalance(connection, cashDeskId, currencyCode, type == IncassationType.TOP_UP ? amount : -amount);
-    }
-
-    private void updateCashDeskBalanceIfCompleted(Connection connection, int cashDeskId, String currencyCode,
-                                                  double amount, IncassationType type, IncassationStatus status) throws SQLException {
-        if (status == IncassationStatus.COMPLETED) {
-            updateCashDeskBalance(connection, cashDeskId, currencyCode, amount, type);
-        }
-    }
-
-    private void revertCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, 
-                                       double amount, IncassationType type) throws SQLException {
-        adjustCashDeskBalance(connection, cashDeskId, currencyCode, type == IncassationType.TOP_UP ? -amount : amount);
-    }
-
-    private void adjustCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, double delta) throws SQLException {
-        String selectSql = "SELECT balance FROM cash_desk_balances WHERE cash_desk_id=? AND currency_code=? FOR UPDATE";
-        try (PreparedStatement statement = connection.prepareStatement(selectSql)) {
-            statement.setInt(1, cashDeskId);
-            statement.setString(2, currencyCode);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (!resultSet.next()) {
-                    if (delta < 0) {
-                        throwInsufficientBalance(currencyCode, 0, -delta);
-                    }
-                    insertCashDeskBalance(connection, cashDeskId, currencyCode, delta);
-                    return;
-                }
-
-                double currentBalance = resultSet.getDouble("balance");
-                double newBalance = currentBalance + delta;
-                if (newBalance < 0) {
-                    throwInsufficientBalance(currencyCode, currentBalance, -delta);
-                }
-                updateCashDeskBalance(connection, cashDeskId, currencyCode, newBalance);
-            }
-        }
-    }
-
-    private void insertCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, double balance) throws SQLException {
-        String sql = "INSERT INTO cash_desk_balances(cash_desk_id, currency_code, balance) VALUES (?, ?, ?)";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, cashDeskId);
-            statement.setString(2, currencyCode);
-            statement.setDouble(3, balance);
-            statement.executeUpdate();
-        }
-    }
-
-    private void updateCashDeskBalance(Connection connection, int cashDeskId, String currencyCode, double balance) throws SQLException {
-        String sql = "UPDATE cash_desk_balances SET balance=? WHERE cash_desk_id=? AND currency_code=?";
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setDouble(1, balance);
-            statement.setInt(2, cashDeskId);
-            statement.setString(3, currencyCode);
-            statement.executeUpdate();
-        }
-    }
-
-    private void throwInsufficientBalance(String currencyCode, double currentBalance, double requiredAmount) {
-        throw new IllegalArgumentException(
-                "Недостаточно " + currencyCode + " в кассе. Доступно: "
-                        + formatNumber(currentBalance)
-                        + ", нужно списать: "
-                        + formatNumber(requiredAmount)
-                        + "."
-        );
-    }
-
-    private String formatNumber(double value) {
-        return java.math.BigDecimal.valueOf(value)
-                .setScale(2, java.math.RoundingMode.HALF_UP)
-                .stripTrailingZeros()
-                .toPlainString();
-    }
-
-    private void revertCashDeskBalanceIfCompleted(Connection connection, int cashDeskId, String currencyCode,
-                                                  double amount, IncassationType type, String status) throws SQLException {
-        if (IncassationStatus.COMPLETED.getDbValue().equals(status)) {
-            revertCashDeskBalance(connection, cashDeskId, currencyCode, amount, type);
-        }
     }
 
     private void rollbackQuietly(Connection connection) {

@@ -41,10 +41,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class CashDeskController {
     private static final double CASH_DESK_DIALOG_VIEWPORT_WIDTH = 680;
@@ -261,8 +263,10 @@ public class CashDeskController {
                     displayedCashDesks.add(desk);
                 }
             }
+
+            Map<Integer, List<CashDesk.Balance>> balancesByDesk = loadCashDeskBalances(connection, displayedCashDesks);
             for (CashDesk desk : displayedCashDesks) {
-                desk.setBalances(loadCashDeskBalances(connection, desk.getId()));
+                desk.setBalances(balancesByDesk.getOrDefault(desk.getId(), List.of()));
             }
 
             if (selectedCashDesk != null) {
@@ -549,19 +553,37 @@ public class CashDeskController {
         }
     }
 
-    private List<CashDesk.Balance> loadCashDeskBalances(Connection connection, int cashDeskId) throws SQLException {
-        String sql = "SELECT c.currency_code, c.currency_name, " +
+    private Map<Integer, List<CashDesk.Balance>> loadCashDeskBalances(Connection connection,
+                                                                       List<CashDesk> cashDesks) throws SQLException {
+        Map<Integer, List<CashDesk.Balance>> balancesByDesk = new LinkedHashMap<>();
+        if (cashDesks.isEmpty()) {
+            return balancesByDesk;
+        }
+
+        List<Integer> ids = cashDesks.stream().map(CashDesk::getId).toList();
+        for (Integer id : ids) {
+            balancesByDesk.put(id, new ArrayList<>());
+        }
+
+        String placeholders = ids.stream().map(id -> "?").collect(Collectors.joining(","));
+        String sql = "SELECT d.cash_desk_id, c.currency_code, c.currency_name, " +
                 "COALESCE(cdb.balance, 0) AS balance, " +
                 "COALESCE(cdb.min_limit, 0) AS min_limit, " +
                 "COALESCE(cdb.max_limit, 0) AS max_limit " +
-                "FROM currencies c " +
-                "LEFT JOIN cash_desk_balances cdb ON cdb.currency_code = c.currency_code AND cdb.cash_desk_id = ? " +
-                "ORDER BY c.currency_code";
+                "FROM (SELECT cash_desk_id FROM cash_desks WHERE cash_desk_id IN (" + placeholders + ")) d " +
+                "CROSS JOIN currencies c " +
+                "LEFT JOIN cash_desk_balances cdb ON cdb.cash_desk_id = d.cash_desk_id AND cdb.currency_code = c.currency_code " +
+                "ORDER BY d.cash_desk_id, c.currency_code";
+
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, cashDeskId);
+            for (int i = 0; i < ids.size(); i++) {
+                statement.setInt(i + 1, ids.get(i));
+            }
+
             try (ResultSet resultSet = statement.executeQuery()) {
-                List<CashDesk.Balance> balances = new java.util.ArrayList<>();
                 while (resultSet.next()) {
+                    int cashDeskId = resultSet.getInt("cash_desk_id");
+                    List<CashDesk.Balance> balances = balancesByDesk.computeIfAbsent(cashDeskId, ignored -> new ArrayList<>());
                     balances.add(new CashDesk.Balance(
                             resultSet.getString("currency_code"),
                             resultSet.getString("currency_name"),
@@ -570,9 +592,10 @@ public class CashDeskController {
                             resultSet.getDouble("max_limit")
                     ));
                 }
-                return balances;
             }
         }
+
+        return balancesByDesk;
     }
 
     private void saveCashDeskBalances(Connection connection, int cashDeskId, Map<String, ParsedBalance> balances) throws SQLException {

@@ -4,6 +4,7 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
@@ -43,6 +44,8 @@
             <SearchableComboBox fx:id="reportTypeBox" prefWidth="420"/>
             <Label text="Колонки" styleClass="filter-label"/>
             <CheckComboBox fx:id="columnSelectorBox" prefWidth="260"/>
+            <TextField fx:id="reportSearchField" promptText="Поиск по видимым колонкам" prefWidth="260" styleClass="search-field modern-search-field"/>
+            <Label fx:id="reportMetaLabel" text="Показано строк: 0 / 0" styleClass="filter-label"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Button text="Экспорт CSV" onAction="#exportCsv" styleClass="primary-button">
                 <graphic><FontIcon iconLiteral="fas-file-export" iconSize="12" styleClass="app-icon"/></graphic>
